@@ -139,7 +139,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         
         const { data: profile, error } = await supabaseClient
             .from('profiles')
-            .select('username, pfp_url, banner_url')
+            .select('username, profile_picture, banner_url, tag')
             .eq('id', peerId)
             .single();
 
@@ -149,6 +149,8 @@ document.addEventListener("DOMContentLoaded", async () => {
             if (usernameDisplay) usernameDisplay.textContent = "Friend";
             if (pfpImage) pfpImage.src = "pfp.png";
             if (bannerImage) bannerImage.src = "defbanner.png";
+            const tagElement = document.querySelector(".tag");
+            if (tagElement) tagElement.textContent = "ARTIST";
             return;
         }
 
@@ -158,8 +160,14 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         // Update the DOM with the fetched data (safely)
         if (usernameDisplay) usernameDisplay.textContent = remoteUserProfile.username || "Friend";
-        if (pfpImage) pfpImage.src = remoteUserProfile.pfp_url || "pfp.png";
+        if (pfpImage) pfpImage.src = remoteUserProfile.profile_picture || "pfp.png";
         if (bannerImage) bannerImage.src = remoteUserProfile.banner_url || "defbanner.png";
+        
+        // Update the tag if it exists
+        const tagElement = document.querySelector(".tag");
+        if (tagElement && remoteUserProfile.tag) {
+            tagElement.textContent = remoteUserProfile.tag;
+        }
     }
 
     async function initMedia() {
@@ -277,6 +285,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (usernameDisplay) usernameDisplay.textContent = "Username";
         if (pfpImage) pfpImage.src = "pfp.png";
         if (bannerImage) bannerImage.src = "defbanner.png";
+        const tagElement = document.querySelector(".tag");
+        if (tagElement) tagElement.textContent = "ARTIST";
         remoteUserProfile = {};
     }
 
