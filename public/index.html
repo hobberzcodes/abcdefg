@@ -38,11 +38,11 @@
       <div class="profile">
         <div class="top-profile">
           <div class="userpfp">
-            <img src="pfp.png" width="65px" height="65px" />
+            <img id="pfp-image" src="pfp.png" width="65px" height="65px" />
           </div>
           <div class="user">
             <div class="un">
-              <h1>Username</h1>
+              <h1 id="username-display">Username</h1>
               <img
                 class="verified"
                 src="verified.png"
@@ -56,6 +56,7 @@
 
         <div class="banner-wrapper">
           <img
+            id="banner-image"
             class="banner"
             src="defbanner.png"
             height="170px"
@@ -127,6 +128,6 @@
 
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script src="database.js"></script>
-    <script src="script.js"></script>
+    <script src="script-fixed.js"></script>
   </body>
 </html>

@@ -30,6 +30,7 @@ app.get('/', (req, res) => {
 // Store connected clients and their search status
 const clients = new Map();
 const searchingClients = new Set();
+const partnerships = new Map(); // Track client partnerships
 
 wss.on('connection', (ws) => {
   const clientId = generateClientId();
@@ -73,6 +74,20 @@ wss.on('connection', (ws) => {
   ws.on('close', () => {
     console.log(`🔌 Client ${clientId} disconnected`);
     searchingClients.delete(clientId);
+    
+    // Clean up partnership
+    const partnerId = partnerships.get(clientId);
+    if (partnerId) {
+      partnerships.delete(clientId);
+      partnerships.delete(partnerId);
+      
+      // Notify partner if still connected
+      const partnerWs = clients.get(partnerId);
+      if (partnerWs && partnerWs.readyState === WebSocket.OPEN) {
+        partnerWs.send(JSON.stringify({ type: 'skipToNext' }));
+      }
+    }
+    
     clients.delete(clientId);
   });
   
@@ -101,6 +116,10 @@ function handleSearch(clientId, ws) {
       // Remove both from searching
       searchingClients.delete(clientId);
       searchingClients.delete(partnerId);
+      
+      // Store the partnership
+      partnerships.set(clientId, partnerId);
+      partnerships.set(partnerId, clientId);
       
       console.log(`🤝 Pairing clients ${clientId} and ${partnerId}`);
       
@@ -152,14 +171,7 @@ function forwardToPartner(clientId, data) {
 }
 
 function findPartner(clientId) {
-  // Simple partner finding - in a real app you'd track partnerships
-  // For now, just return the first other connected client
-  for (const [id, ws] of clients.entries()) {
-    if (id !== clientId && ws.readyState === WebSocket.OPEN) {
-      return id;
-    }
-  }
-  return null;
+  return partnerships.get(clientId) || null;
 }
 
 const PORT = process.env.PORT || 5000;
