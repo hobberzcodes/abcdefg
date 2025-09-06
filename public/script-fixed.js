@@ -249,17 +249,35 @@ document.addEventListener("DOMContentLoaded", async () => {
         console.log("📡 Sent offer");
     }
 
-    function startSearch() {
+    async function startSearch() {
         if (isSearching) return; // Prevent multiple searches
         
         isSearching = true;
         appendSystemMessage("🔍 Searching for a new connection...");
-        socket.send(JSON.stringify({ type: "search" }));
+        
+        // Get current user ID from Supabase if available
+        let currentUserId = null;
+        try {
+            if (window.supabaseClient) {
+                const { data: { user } } = await supabaseClient.auth.getUser();
+                currentUserId = user?.id;
+            }
+        } catch (error) {
+            console.log("Could not get current user:", error.message);
+        }
+        
+        socket.send(JSON.stringify({ 
+            type: "search", 
+            userId: currentUserId 
+        }));
 
         searchTimeout = setTimeout(() => {
             if (isSearching) {
                 appendSystemMessage("🤔 Still searching...");
-                socket.send(JSON.stringify({ type: "search" }));
+                socket.send(JSON.stringify({ 
+                    type: "search", 
+                    userId: currentUserId 
+                }));
                 startSearch();
             }
         }, 5000);

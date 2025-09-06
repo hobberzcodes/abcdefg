@@ -28,7 +28,8 @@ app.get('/', (req, res) => {
 });
 
 // Store connected clients and their search status
-const clients = new Map();
+const clients = new Map(); // clientId -> websocket
+const clientUsers = new Map(); // clientId -> userId (Supabase ID)
 const searchingClients = new Set();
 const partnerships = new Map(); // Track client partnerships
 
@@ -45,7 +46,7 @@ wss.on('connection', (ws) => {
       
       switch (data.type) {
         case 'search':
-          handleSearch(clientId, ws);
+          handleSearch(clientId, ws, data.userId);
           break;
           
         case 'stopSearch':
@@ -88,7 +89,9 @@ wss.on('connection', (ws) => {
       }
     }
     
+    // Clean up all client data
     clients.delete(clientId);
+    clientUsers.delete(clientId);
   });
   
   ws.on('error', (error) => {
@@ -100,8 +103,15 @@ function generateClientId() {
   return Math.random().toString(36).substring(2, 15);
 }
 
-function handleSearch(clientId, ws) {
+function handleSearch(clientId, ws, userId = null) {
   console.log(`🔍 Client ${clientId} started searching`);
+  
+  // Store user ID if provided
+  if (userId) {
+    clientUsers.set(clientId, userId);
+    console.log(`👤 Client ${clientId} identified as user ${userId}`);
+  }
+  
   searchingClients.add(clientId);
   
   // Try to find another searching client
@@ -121,18 +131,22 @@ function handleSearch(clientId, ws) {
       partnerships.set(clientId, partnerId);
       partnerships.set(partnerId, clientId);
       
-      console.log(`🤝 Pairing clients ${clientId} and ${partnerId}`);
+      // Get actual user IDs for profile loading
+      const currentUserUserId = clientUsers.get(clientId);
+      const partnerUserId = clientUsers.get(partnerId);
       
-      // Notify both clients they found a peer
+      console.log(`🤝 Pairing clients ${clientId} (user: ${currentUserUserId}) and ${partnerId} (user: ${partnerUserId})`);
+      
+      // Notify both clients they found a peer with actual user IDs
       ws.send(JSON.stringify({
         type: 'peerFound',
-        peerId: partnerId,
+        peerId: partnerUserId || partnerId, // Use Supabase user ID if available
         isCaller: true
       }));
       
       partnerWs.send(JSON.stringify({
         type: 'peerFound',
-        peerId: clientId,
+        peerId: currentUserUserId || clientId, // Use Supabase user ID if available
         isCaller: false
       }));
     }
