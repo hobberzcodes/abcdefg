@@ -135,7 +135,12 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     // Load peer profile function with error handling
     async function loadPeerProfile(peerId) {
-        if (!window.supabaseClient) return;
+        if (!window.supabaseClient) {
+            console.log("⚠️ Supabase client not available for profile loading");
+            return;
+        }
+        
+        console.log("🔍 Loading profile for peer:", peerId);
         
         const { data: profile, error } = await supabaseClient
             .from('profiles')
@@ -261,6 +266,13 @@ document.addEventListener("DOMContentLoaded", async () => {
             if (window.supabaseClient) {
                 const { data: { user } } = await supabaseClient.auth.getUser();
                 currentUserId = user?.id;
+                if (currentUserId) {
+                    console.log("🔑 Found authenticated user:", currentUserId);
+                } else {
+                    console.log("⚠️ No authenticated user found");
+                }
+            } else {
+                console.log("⚠️ Supabase client not available");
             }
         } catch (error) {
             console.log("Could not get current user:", error.message);
