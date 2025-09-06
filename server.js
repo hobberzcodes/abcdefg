@@ -1,0 +1,170 @@
+const express = require('express');
+const http = require('http');
+const WebSocket = require('ws');
+const path = require('path');
+
+const app = express();
+const server = http.createServer(app);
+const wss = new WebSocket.Server({ server });
+
+// Serve static files from public directory
+app.use(express.static('public'));
+
+// Also serve root level files (like database.js, etc.)
+app.use(express.static('.', {
+  dotfiles: 'ignore',
+  index: false,
+  setHeaders: (res, path) => {
+    // Set no-cache headers for development
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+  }
+}));
+
+// Default route to serve index.html
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// Store connected clients and their search status
+const clients = new Map();
+const searchingClients = new Set();
+
+wss.on('connection', (ws) => {
+  const clientId = generateClientId();
+  clients.set(clientId, ws);
+  
+  console.log(`🔌 Client ${clientId} connected`);
+  
+  ws.on('message', (message) => {
+    try {
+      const data = JSON.parse(message.toString());
+      console.log(`📩 Message from ${clientId}:`, data.type);
+      
+      switch (data.type) {
+        case 'search':
+          handleSearch(clientId, ws);
+          break;
+          
+        case 'stopSearch':
+          handleStopSearch(clientId);
+          break;
+          
+        case 'skipToNext':
+          handleSkipToNext(clientId, ws);
+          break;
+          
+        case 'offer':
+        case 'answer':
+        case 'candidate':
+          // Forward signaling messages to the paired client
+          forwardToPartner(clientId, data);
+          break;
+          
+        default:
+          console.log(`⚠️ Unknown message type: ${data.type}`);
+      }
+    } catch (error) {
+      console.error('Error parsing message:', error);
+    }
+  });
+  
+  ws.on('close', () => {
+    console.log(`🔌 Client ${clientId} disconnected`);
+    searchingClients.delete(clientId);
+    clients.delete(clientId);
+  });
+  
+  ws.on('error', (error) => {
+    console.error(`❌ WebSocket error for client ${clientId}:`, error);
+  });
+});
+
+function generateClientId() {
+  return Math.random().toString(36).substring(2, 15);
+}
+
+function handleSearch(clientId, ws) {
+  console.log(`🔍 Client ${clientId} started searching`);
+  searchingClients.add(clientId);
+  
+  // Try to find another searching client
+  const availableClients = Array.from(searchingClients).filter(id => id !== clientId);
+  
+  if (availableClients.length > 0) {
+    // Pair with the first available client
+    const partnerId = availableClients[0];
+    const partnerWs = clients.get(partnerId);
+    
+    if (partnerWs && partnerWs.readyState === WebSocket.OPEN) {
+      // Remove both from searching
+      searchingClients.delete(clientId);
+      searchingClients.delete(partnerId);
+      
+      console.log(`🤝 Pairing clients ${clientId} and ${partnerId}`);
+      
+      // Notify both clients they found a peer
+      ws.send(JSON.stringify({
+        type: 'peerFound',
+        peerId: partnerId,
+        isCaller: true
+      }));
+      
+      partnerWs.send(JSON.stringify({
+        type: 'peerFound',
+        peerId: clientId,
+        isCaller: false
+      }));
+    }
+  }
+}
+
+function handleStopSearch(clientId) {
+  console.log(`🛑 Client ${clientId} stopped searching`);
+  searchingClients.delete(clientId);
+}
+
+function handleSkipToNext(clientId, ws) {
+  console.log(`👉 Client ${clientId} skipped to next`);
+  
+  // Find and notify the partner
+  const partnerId = findPartner(clientId);
+  if (partnerId) {
+    const partnerWs = clients.get(partnerId);
+    if (partnerWs && partnerWs.readyState === WebSocket.OPEN) {
+      partnerWs.send(JSON.stringify({ type: 'skipToNext' }));
+    }
+  }
+  
+  // Start searching again
+  handleSearch(clientId, ws);
+}
+
+function forwardToPartner(clientId, data) {
+  const partnerId = findPartner(clientId);
+  if (partnerId) {
+    const partnerWs = clients.get(partnerId);
+    if (partnerWs && partnerWs.readyState === WebSocket.OPEN) {
+      partnerWs.send(JSON.stringify(data));
+    }
+  }
+}
+
+function findPartner(clientId) {
+  // Simple partner finding - in a real app you'd track partnerships
+  // For now, just return the first other connected client
+  for (const [id, ws] of clients.entries()) {
+    if (id !== clientId && ws.readyState === WebSocket.OPEN) {
+      return id;
+    }
+  }
+  return null;
+}
+
+const PORT = process.env.PORT || 5000;
+
+server.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 Server running on http://0.0.0.0:${PORT}`);
+  console.log(`🔌 WebSocket server ready for connections`);
+});
