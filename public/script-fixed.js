@@ -318,6 +318,92 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (chatBox) chatBox.scrollTop = chatBox.scrollHeight;
     }
 
+    function appendAudioMessage(audioData, fileName, sender = "You") {
+        const msg = document.createElement("div");
+        msg.classList.add("message", "audio-message");
+
+        const userSpan = document.createElement("span");
+        userSpan.classList.add("user", sender === "You" ? "blue" : "cyan");
+        userSpan.textContent = `${sender}:`;
+
+        const audioPlayerContainer = document.createElement("div");
+        audioPlayerContainer.classList.add("audio-player");
+
+        audioPlayerContainer.innerHTML = `
+          <div class="audio-controls">
+            <button class="play-pause-btn">▶️</button>
+            <div class="audio-time">
+                <span class="current-time">0:00</span> / <span class="total-time">0:00</span>
+            </div>
+            <input type="range" class="audio-slider" value="0" step="0.01">
+          </div>
+          <a href="${audioData}" download="${fileName}" class="download-btn">⬇️</a>
+      `;
+        
+        const audioElement = new Audio(audioData);
+        const playPauseBtn = audioPlayerContainer.querySelector(".play-pause-btn");
+        const timeSlider = audioPlayerContainer.querySelector(".audio-slider");
+        const currentTimeSpan = audioPlayerContainer.querySelector(".current-time");
+        const totalTimeSpan = audioPlayerContainer.querySelector(".total-time");
+
+        playPauseBtn.addEventListener("click", () => {
+            if (audioElement.paused) {
+                audioElement.play();
+                playPauseBtn.textContent = "⏸️";
+            } else {
+                audioElement.pause();
+                playPauseBtn.textContent = "▶️";
+            }
+        });
+
+        audioElement.addEventListener("timeupdate", () => {
+            const progress = (audioElement.currentTime / audioElement.duration) * 100;
+            timeSlider.value = progress;
+
+            const currentMinutes = Math.floor(audioElement.currentTime / 60);
+            const currentSeconds = Math.floor(audioElement.currentTime % 60);
+            currentTimeSpan.textContent = `${currentMinutes}:${currentSeconds < 10 ? "0" : ""}${currentSeconds}`;
+        });
+
+        audioElement.addEventListener("loadedmetadata", () => {
+            const totalMinutes = Math.floor(audioElement.duration / 60);
+            const totalSeconds = Math.floor(audioElement.duration % 60);
+            totalTimeSpan.textContent = `${totalMinutes}:${totalSeconds < 10 ? "0" : ""}${totalSeconds}`;
+        });
+
+        timeSlider.addEventListener("input", () => {
+            const newTime = (timeSlider.value / 100) * audioElement.duration;
+            audioElement.currentTime = newTime;
+        });
+
+        msg.appendChild(userSpan);
+        msg.appendChild(audioPlayerContainer);
+        if (chatBox) chatBox.appendChild(msg);
+        if (chatBox) chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    function appendImageMessage(imageData, sender = "You") {
+        const msg = document.createElement("div");
+        msg.classList.add("message", "image-message");
+
+        const userSpan = document.createElement("span");
+        userSpan.classList.add("user", sender === "You" ? "blue" : "cyan");
+        userSpan.textContent = `${sender}:`;
+
+        const imageContainer = document.createElement("div");
+        imageContainer.classList.add("image-container");
+
+        const imageElement = document.createElement("img");
+        imageElement.src = imageData;
+
+        imageContainer.appendChild(imageElement);
+
+        msg.appendChild(userSpan);
+        msg.appendChild(imageContainer);
+        if (chatBox) chatBox.appendChild(msg);
+        if (chatBox) chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
     function sendMessage() {
         const text = input ? input.value.trim() : "";
         if (text !== "" && dataChannel && dataChannel.readyState === "open") {
@@ -340,8 +426,14 @@ document.addEventListener("DOMContentLoaded", async () => {
             console.log("💬 Message received:", event.data);
             try {
                 const message = JSON.parse(event.data);
+                const senderName = remoteUserProfile.username || "Friend";
+                
                 if (message.type === "textMessage") {
-                    appendMessage(message.content, remoteUserProfile.username || "Friend");
+                    appendMessage(message.content, senderName);
+                } else if (message.type === "audioMessage") {
+                    appendAudioMessage(message.audioData, message.fileName, senderName);
+                } else if (message.type === "imageMessage") {
+                    appendImageMessage(message.imageData, senderName);
                 }
             } catch (e) {
                 console.error("Failed to parse message as JSON:", e);
@@ -356,6 +448,50 @@ document.addEventListener("DOMContentLoaded", async () => {
             console.error("❌ Data channel error:", error);
             appendSystemMessage("⚠️ Chat channel error.");
         };
+    }
+
+    // File upload handlers
+    if (audioUploadInput) {
+        audioUploadInput.addEventListener("change", (event) => {
+            const file = event.target.files[0];
+            if (file && dataChannel && dataChannel.readyState === "open") {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const audioData = e.target.result;
+                    const message = JSON.stringify({
+                        type: "audioMessage",
+                        fileName: file.name,
+                        audioData: audioData,
+                    });
+                    dataChannel.send(message);
+                    appendAudioMessage(audioData, file.name, "You");
+                };
+                reader.readAsDataURL(file);
+            } else if (!dataChannel || dataChannel.readyState !== "open") {
+                appendSystemMessage("🚨 Cannot send audio. Chat channel is not connected.");
+            }
+        });
+    }
+
+    if (imageUploadInput) {
+        imageUploadInput.addEventListener("change", (event) => {
+            const file = event.target.files[0];
+            if (file && dataChannel && dataChannel.readyState === "open") {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const imageData = e.target.result;
+                    const message = JSON.stringify({
+                        type: "imageMessage",
+                        imageData: imageData,
+                    });
+                    dataChannel.send(message);
+                    appendImageMessage(imageData, "You");
+                };
+                reader.readAsDataURL(file);
+            } else if (!dataChannel || dataChannel.readyState !== "open") {
+                appendSystemMessage("🚨 Cannot send image. Chat channel is not connected.");
+            }
+        });
     }
 
     // Event listeners
