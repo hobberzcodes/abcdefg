@@ -1,4 +1,15 @@
 document.addEventListener("DOMContentLoaded", async () => {
+    // Wait for authentication before initializing the app
+    console.log("🔐 Waiting for authentication...");
+    await authManager.waitForAuth();
+    
+    if (!authManager.isAuthenticated()) {
+        console.log("❌ User not authenticated, redirecting...");
+        return; // Auth manager will handle redirect
+    }
+    
+    console.log("✅ User authenticated, initializing app...");
+    
     const input = document.querySelector(".chat-input input");
     const sendBtn = document.querySelector(".send-btn");
     const chatBox = document.querySelector(".chat-box");
@@ -15,15 +26,95 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     const audioUploadInput = document.getElementById("audioUpload");
     const imageUploadInput = document.getElementById("imageUpload");
+    
+    // Initialize the current user's profile display
+    initializeCurrentUserProfile();
 
     let localStream;
     let peerConnection;
     let dataChannel;
     let isSearching = false;
     let searchTimeout;
+    let mediaInitialized = false;
 
     // Store the remote user's profile info
     let remoteUserProfile = {};
+    
+    // Initialize current user's profile display
+    function initializeCurrentUserProfile() {
+        const currentUserProfile = authManager.getCurrentUserProfile();
+        
+        if (!currentUserProfile) {
+            console.warn("⚠️ No current user profile available");
+            return;
+        }
+        
+        console.log("👤 Setting up current user profile display:", currentUserProfile);
+        
+        // Update navbar to show current user
+        const currentUsernameElement = document.querySelector('.navbar h1');
+        if (currentUsernameElement) {
+            currentUsernameElement.textContent = `SoundLink - ${currentUserProfile.username}`;
+        }
+        
+        // Show current user's profile in the profile panel (until connected to a peer)
+        displayUserProfile(currentUserProfile, true);
+        
+        // Set up logout functionality
+        const logoutLink = document.querySelector('a[href="login.html"]');
+        if (logoutLink) {
+            logoutLink.addEventListener('click', async (e) => {
+                e.preventDefault();
+                console.log("🚪 Logout clicked");
+                await authManager.signOut();
+            });
+        }
+        
+        console.log("✅ Current user profile initialized");
+    }
+    
+    // Display user profile in the profile panel
+    function displayUserProfile(profile, isCurrentUser = false) {
+        console.log("👤 Displaying profile:", profile, "Current user:", isCurrentUser);
+        
+        // Update username display
+        if (usernameDisplay && profile.username) {
+            usernameDisplay.textContent = profile.username;
+        }
+        
+        // Update profile picture
+        if (pfpImage && profile.profile_picture) {
+            pfpImage.src = profile.profile_picture;
+            pfpImage.onerror = () => {
+                console.warn("⚠️ Failed to load profile picture, using fallback");
+                pfpImage.src = "pfp.png";
+            };
+        }
+        
+        // Update banner image
+        if (bannerImage && profile.banner) {
+            bannerImage.src = profile.banner;
+            bannerImage.onerror = () => {
+                console.warn("⚠️ Failed to load banner image, using fallback");
+                bannerImage.src = "defbanner.png";
+            };
+        }
+        
+        // Update tag if available
+        const tagElement = document.querySelector('.tag');
+        if (tagElement && profile.tag) {
+            tagElement.textContent = profile.tag.toUpperCase();
+        }
+        
+        // Add visual indicator for current user vs peer
+        const profileContainer = document.querySelector('.profile');
+        if (profileContainer) {
+            profileContainer.classList.toggle('current-user', isCurrentUser);
+            profileContainer.classList.toggle('peer-user', !isCurrentUser);
+        }
+        
+        console.log(`✅ Profile display updated for ${isCurrentUser ? 'current user' : 'peer'}`);
+    }
 
     const configuration = {
         iceServers: [
@@ -46,173 +137,285 @@ document.addEventListener("DOMContentLoaded", async () => {
         ],
     };
 
-    let wsUrl = location.origin.replace(/^http/, "ws");
-    if (location.protocol === "https:") {
-        wsUrl = wsUrl.replace("ws://", "wss://");
-    }
-    const socket = new WebSocket(wsUrl);
-
-    socket.onopen = () => {
-        console.log("🔌 Connected to signaling server");
-        appendSystemMessage("✅ Connected to signaling server");
-        startSearch();
-    };
-
-    socket.onclose = () => {
-        console.log("🔌 Disconnected from signaling server");
-        appendSystemMessage("❌ Disconnected from signaling server");
-    };
-
-    socket.onerror = (err) => {
-        console.error("⚠️ WebSocket error:", err);
-        appendSystemMessage("⚠️ WebSocket error — check server logs");
-    };
-
-    socket.onmessage = async (event) => {
-        const data = JSON.parse(event.data);
-        console.log("📩 Signaling message:", data);
-
-        if (data.type === "peerFound") {
-            isSearching = false;
-            clearTimeout(searchTimeout);
-            console.log("🤝 Peer found:", data.peerId);
-
-            if (data.peerId) {
-                await loadPeerProfile(data.peerId);
-            }
-
-            if (data.isCaller) {
-                appendSystemMessage("🤝 Found a peer! Initiating call...");
-                createOffer();
-            } else {
-                appendSystemMessage("🤝 Found a peer! Waiting for call...");
-            }
-        } else if (data.type === "offer") {
-            console.log("📡 Received offer");
-            if (peerConnection) {
-                peerConnection.close();
-            }
-            peerConnection = new RTCPeerConnection(configuration);
-            setupPeerConnection();
-            await peerConnection.setRemoteDescription(data.offer);
-            const answer = await peerConnection.createAnswer();
-            await peerConnection.setLocalDescription(answer);
-            socket.send(
-                JSON.stringify({
-                    type: "answer",
-                    answer: peerConnection.localDescription,
-                }),
-            );
-        } else if (data.type === "answer") {
-            console.log("📡 Received answer");
-            if (peerConnection) {
-                await peerConnection.setRemoteDescription(data.answer);
-            }
-        } else if (data.type === "candidate") {
-            console.log("📡 Received ICE candidate");
-            if (peerConnection) {
-                try {
-                    await peerConnection.addIceCandidate(data.candidate);
-                } catch (err) {
-                    console.error("❌ Error adding ICE candidate", err);
-                }
-            }
-        } else if (data.type === "skipToNext") {
-            console.log(
-                "👉 Other user skipped. Automatically searching for next peer...",
-            );
-            appendSystemMessage(
-                "👋 The other user skipped. Searching for a new connection...",
-            );
-            resetConnection();
-            chatBox.innerHTML = "";
-            startSearch();
+    let socket;
+    
+    // Helper function to get current user info for socket messages
+    function getCurrentUserForSocket() {
+        const currentUser = authManager.getCurrentUser();
+        const currentUserProfile = authManager.getCurrentUserProfile();
+        
+        if (!currentUser) {
+            console.error("❌ No authenticated user available for socket communication");
+            return null;
         }
-    };
+        
+        return {
+            userId: currentUser.id,
+            userProfile: {
+                username: currentUserProfile?.username || currentUser.email?.split('@')[0] || 'Unknown',
+                profile_picture: currentUserProfile?.profile_picture || 'pfp.png',
+                banner: currentUserProfile?.banner || 'defbanner.png',
+                tag: currentUserProfile?.tag || 'User'
+            }
+        };
+    }
 
-    // Corrected function to fetch peer profile using the correct Supabase column names
-    async function loadPeerProfile(peerId) {
+    function initializeSocket() {
+        // Verify authentication before initializing socket
+        if (!authManager.isAuthenticated()) {
+            console.error("❌ Cannot initialize socket - user not authenticated");
+            appendSystemMessage("🚨 Authentication required for socket connection");
+            return;
+        }
+
+        let wsUrl = location.origin.replace(/^http/, "ws");
+        if (location.protocol === "https:") {
+            wsUrl = wsUrl.replace("ws://", "wss://");
+        }
+        socket = new WebSocket(wsUrl);
+
+        socket.onopen = () => {
+            const currentUser = authManager.getCurrentUser();
+            console.log("🔌 Connected to signaling server as user:", currentUser?.id);
+            appendSystemMessage("✅ Connected to signaling server");
+            startSearch();
+        };
+
+        socket.onclose = () => {
+            console.log("🔌 Disconnected from signaling server");
+            appendSystemMessage("❌ Disconnected from signaling server");
+        };
+
+        socket.onerror = (err) => {
+            console.error("⚠️ WebSocket error:", err);
+            appendSystemMessage("⚠️ WebSocket connection error — check your connection");
+            
+            // Check if the error might be due to authentication issues
+            if (!authManager.isAuthenticated()) {
+                console.error("❌ Socket error may be due to authentication failure");
+                appendSystemMessage("🚨 Authentication error - please login again");
+            }
+        };
+
+        socket.onmessage = async (event) => {
+            try {
+                const data = JSON.parse(event.data);
+                console.log("📩 Signaling message:", data);
+                
+                // Verify we're still authenticated before processing messages
+                if (!authManager.isAuthenticated()) {
+                    console.error("❌ Received socket message but user is not authenticated");
+                    appendSystemMessage("🚨 Authentication lost - please refresh the page");
+                    return;
+                }
+
+            if (data.type === "peerFound") {
+                isSearching = false;
+                clearTimeout(searchTimeout);
+                console.log("🤝 Peer found with details:", {
+                    peerId: data.peerId,
+                    peerProfile: data.peerProfile,
+                    isCaller: data.isCaller
+                });
+
+                // Handle peer profile data - either from direct profile data or by UUID lookup
+                if (data.peerProfile) {
+                    // Server provided complete profile data
+                    console.log("✅ Received peer profile data directly from server");
+                    remoteUserProfile = data.peerProfile;
+                    displayUserProfile(remoteUserProfile, false);
+                } else if (data.peerId) {
+                    // Fallback: lookup peer profile by UUID
+                    console.log("🔍 Looking up peer profile by UUID:", data.peerId);
+                    await loadPeerProfileByUUID(data.peerId);
+                } else {
+                    console.warn("⚠️ No peer profile data or UUID provided");
+                    // Create fallback profile
+                    remoteUserProfile = {
+                        username: "Unknown Peer",
+                        profile_picture: "pfp.png",
+                        banner: "defbanner.png",
+                        tag: "User"
+                    };
+                    displayUserProfile(remoteUserProfile, false);
+                }
+
+                if (data.isCaller) {
+                    appendSystemMessage("🤝 Found a peer! Initiating call...");
+                    createOffer();
+                } else {
+                    appendSystemMessage("🤝 Found a peer! Waiting for call...");
+                }
+            } else if (data.type === "offer") {
+                console.log("📡 Received offer");
+                if (peerConnection) {
+                    peerConnection.close();
+                }
+                console.log("🔗 Peer connection starting");
+                peerConnection = new RTCPeerConnection(configuration);
+                console.log("🔗 Peer connection created");
+                setupPeerConnection();
+                await peerConnection.setRemoteDescription(data.offer);
+                const answer = await peerConnection.createAnswer();
+                await peerConnection.setLocalDescription(answer);
+                socket.send(
+                    JSON.stringify({
+                        type: "answer",
+                        answer: peerConnection.localDescription,
+                    }),
+                );
+            } else if (data.type === "answer") {
+                console.log("📡 Received answer");
+                if (peerConnection) {
+                    await peerConnection.setRemoteDescription(data.answer);
+                }
+            } else if (data.type === "candidate") {
+                console.log("📡 Received ICE candidate");
+                if (peerConnection) {
+                    try {
+                        await peerConnection.addIceCandidate(data.candidate);
+                    } catch (err) {
+                        console.error("❌ Error adding ICE candidate", err);
+                    }
+                }
+            } else if (data.type === "skipToNext") {
+                console.log(
+                    "👉 Other user skipped. Automatically searching for next peer...",
+                );
+                appendSystemMessage(
+                    "👋 The other user skipped. Searching for a new connection...",
+                );
+                resetConnection();
+                chatBox.innerHTML = "";
+                startSearch();
+            }
+        } catch (error) {
+            console.error("❌ Error processing socket message:", error);
+            appendSystemMessage("⚠️ Error processing server message");
+        }
+        };
+    }
+
+    // Function to fetch peer profile from database using UUID
+    async function loadPeerProfileByUUID(userUUID) {
         if (!supabaseClient) {
             console.error("🚨 Supabase client not initialized.");
             return;
         }
 
-        // Add a check to validate the UUID format before querying Supabase
+        // Validate the UUID format before querying Supabase
         const isUUID =
             /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
-                peerId,
+                userUUID,
             );
         if (!isUUID) {
             console.warn(
-                `⚠️ Received invalid ID from signaling server: ${peerId}`,
+                `⚠️ Invalid UUID format received: ${userUUID}`,
             );
             appendSystemMessage(
-                "⚠️ Invalid user ID received from the server. Could not load profile.",
+                "⚠️ Invalid user ID format. Could not load peer profile.",
             );
-            usernameDisplay.textContent = "Unknown User";
-            pfpImage.src = "pfp.png";
-            bannerImage.src = "defbanner.png";
-            remoteUserProfile = { username: "Friend" };
+            remoteUserProfile = { 
+                username: "Unknown User", 
+                profile_picture: "pfp.png", 
+                banner: "defbanner.png",
+                tag: "User"
+            };
+            displayUserProfile(remoteUserProfile, false);
             return;
         }
 
-        console.log(`🔍 Attempting to load profile for peer ID: ${peerId}`);
+        console.log(`🔍 Loading peer profile for UUID: ${userUUID}`);
         const { data: profile, error } = await supabaseClient
             .from("profiles")
-            .select("username, profile_picture, banner") // Corrected column names
-            .eq("id", peerId)
+            .select("username, profile_picture, banner, tag") // Include tag field as well
+            .eq("id", userUUID)
             .single();
 
         if (error) {
             console.error("Error fetching peer profile:", error.message);
-            usernameDisplay.textContent = "Unknown User";
-            pfpImage.src = "pfp.png";
-            bannerImage.src = "defbanner.png";
-            remoteUserProfile = { username: "Friend" };
+            remoteUserProfile = { 
+                username: "Unknown User", 
+                profile_picture: "pfp.png", 
+                banner: "defbanner.png",
+                tag: "User"
+            };
+            displayUserProfile(remoteUserProfile, false);
             return;
         }
 
         if (!profile) {
-            console.warn(`⚠️ No profile found for peer ID: ${peerId}`);
-            usernameDisplay.textContent = "Unknown User";
-            pfpImage.src = "pfp.png";
-            bannerImage.src = "defbanner.png";
-            remoteUserProfile = { username: "Friend" };
+            console.warn(`⚠️ No profile found for UUID: ${userUUID}`);
+            remoteUserProfile = { 
+                username: "Unknown User", 
+                profile_picture: "pfp.png", 
+                banner: "defbanner.png",
+                tag: "User"
+            };
+            displayUserProfile(remoteUserProfile, false);
             return;
         }
 
         remoteUserProfile = profile;
         console.log("✅ Loaded remote user profile:", remoteUserProfile);
 
-        usernameDisplay.textContent = remoteUserProfile.username;
-        pfpImage.src = remoteUserProfile.profile_picture || "pfp.png";
-        bannerImage.src = remoteUserProfile.banner || "defbanner.png";
+        // Use the new displayUserProfile function to show peer's profile
+        displayUserProfile(remoteUserProfile, false);
     }
 
     async function initMedia() {
+        // Return early if media initialization has already been attempted
+        if (mediaInitialized) {
+            console.log("🎤 Media initialization already completed");
+            return;
+        }
+
+        console.log("🎤 Initializing media...");
+
         try {
             localStream = await navigator.mediaDevices.getUserMedia({
                 video: true,
                 audio: true,
             });
+            console.log("🎤 Local stream successfully initialized", localStream);
             localVideo.srcObject = localStream;
+            
+            // Wait for video metadata to load to ensure stream is fully ready
             await new Promise(
                 (resolve) => (localVideo.onloadedmetadata = resolve),
             );
-            console.log("🎤 Camera and mic initialized and ready.");
+            console.log("✅ Camera and microphone ready for peer connections");
+            
         } catch (err) {
             console.error("❌ Error accessing camera/mic:", err);
             appendSystemMessage(
-                "🚨 Error: Please allow access to your camera and microphone.",
+                "⚠️ Could not access camera/microphone. You can still use text chat.",
             );
+            console.warn("⚠️ Proceeding without media access - text chat only");
+            localStream = null; // Explicitly set to null for clarity
         }
+
+        // Mark initialization as complete (whether successful or not) and start socket
+        mediaInitialized = true;
+        console.log("🔌 Media initialization complete, starting socket connection...");
+        initializeSocket();
     }
+
     await initMedia();
 
     function setupPeerConnection() {
-        localStream
-            .getTracks()
-            .forEach((track) => peerConnection.addTrack(track, localStream));
+        console.log("🔗 Setting up peer connection. Local stream:", localStream);
+        
+        // Only add local tracks if localStream exists and has tracks
+        if (localStream && localStream.getTracks().length > 0) {
+            localStream
+                .getTracks()
+                .forEach((track) => peerConnection.addTrack(track, localStream));
+            console.log("🎤 Added local media tracks to peer connection");
+        } else {
+            console.warn("⚠️ No local stream available - proceeding with text/data only");
+        }
+        
         peerConnection.ontrack = (event) => {
             console.log("🎥 Remote stream received");
             remoteVideo.srcObject = event.streams[0];
@@ -235,11 +438,15 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     async function createOffer() {
+        console.log("🔗 Creating offer");
         if (peerConnection) {
             peerConnection.close();
         }
+        console.log("🔗 Preparing to create RTC peer connection");
         peerConnection = new RTCPeerConnection(configuration);
+        console.log("🔗 Peer connection via RTCPeerConnection created", peerConnection);
         setupPeerConnection();
+        console.log("🔗 Data channel created");
         dataChannel = peerConnection.createDataChannel("chat");
         setupDataChannelListeners();
 
@@ -252,13 +459,34 @@ document.addEventListener("DOMContentLoaded", async () => {
     function startSearch() {
         isSearching = true;
         appendSystemMessage("🔍 Searching for a new connection...");
-        socket.send(JSON.stringify({ type: "search" }));
+        
+        // Get current user info for socket message
+        const userInfo = getCurrentUserForSocket();
+        if (!userInfo) {
+            appendSystemMessage("🚨 Authentication required to search for connections");
+            return;
+        }
+        
+        const searchMessage = {
+            type: "search",
+            ...userInfo
+        };
+        
+        console.log("🔍 Sending search message with user ID:", userInfo.userId);
+        socket.send(JSON.stringify(searchMessage));
 
         searchTimeout = setTimeout(() => {
             if (isSearching) {
                 appendSystemMessage("🤔 Still searching...");
-                socket.send(JSON.stringify({ type: "search" }));
-                startSearch();
+                const retryUserInfo = getCurrentUserForSocket();
+                if (retryUserInfo) {
+                    socket.send(JSON.stringify({ type: "search", ...retryUserInfo }));
+                    startSearch();
+                } else {
+                    console.error("❌ Authentication lost during search retry");
+                    isSearching = false;
+                    appendSystemMessage("🚨 Authentication lost - please refresh the page");
+                }
             }
         }, 5000);
     }
@@ -267,7 +495,15 @@ document.addEventListener("DOMContentLoaded", async () => {
         isSearching = false;
         clearTimeout(searchTimeout);
         appendSystemMessage("🛑 Stopping search...");
-        socket.send(JSON.stringify({ type: "stopSearch" }));
+        
+        // Include user ID in stop search message for server-side cleanup
+        const userInfo = getCurrentUserForSocket();
+        const stopMessage = {
+            type: "stopSearch",
+            userId: userInfo?.userId || null
+        };
+        
+        socket.send(JSON.stringify(stopMessage));
     }
 
     function resetConnection() {
@@ -279,15 +515,32 @@ document.addEventListener("DOMContentLoaded", async () => {
         dataChannel = null;
         chatBox.innerHTML = "";
 
-        usernameDisplay.textContent = "Username";
-        pfpImage.src = "pfp.png";
-        bannerImage.src = "defbanner.png";
+        // Reset remote user profile
         remoteUserProfile = {};
+        
+        // Restore current user's profile display
+        const currentUserProfile = authManager.getCurrentUserProfile();
+        if (currentUserProfile) {
+            displayUserProfile(currentUserProfile, true);
+        } else {
+            // Fallback display
+            usernameDisplay.textContent = "Username";
+            pfpImage.src = "pfp.png";
+            bannerImage.src = "defbanner.png";
+        }
     }
 
     skipButton.addEventListener("click", () => {
         appendSystemMessage("📞 Disconnecting from current user.");
-        socket.send(JSON.stringify({ type: "skipToNext" }));
+        
+        // Include user ID in skip message
+        const userInfo = getCurrentUserForSocket();
+        const skipMessage = {
+            type: "skipToNext",
+            userId: userInfo?.userId || null
+        };
+        
+        socket.send(JSON.stringify(skipMessage));
         resetConnection();
         startSearch();
     });
@@ -338,18 +591,30 @@ document.addEventListener("DOMContentLoaded", async () => {
                 appendSystemMessage(
                     "📷 Screen share ended. Restoring camera...",
                 );
-                const camStream = await navigator.mediaDevices.getUserMedia({
-                    video: true,
-                    audio: true,
-                });
-                localStream = camStream;
+                try {
+                    const camStream = await navigator.mediaDevices.getUserMedia({
+                        video: true,
+                        audio: true,
+                    });
+                    localStream = camStream;
 
-                const camTrack = camStream.getVideoTracks()[0];
-                if (videoSender) {
-                    videoSender.replaceTrack(camTrack);
+                    const camTrack = camStream.getVideoTracks()[0];
+                    if (videoSender && camTrack) {
+                        videoSender.replaceTrack(camTrack);
+                    }
+
+                    localVideo.srcObject = camStream;
+                    appendSystemMessage("✅ Camera restored successfully");
+                } catch (err) {
+                    console.error("❌ Failed to restore camera after screen share:", err);
+                    appendSystemMessage("⚠️ Could not restore camera. Continuing without video.");
+                    localStream = null;
+                    localVideo.srcObject = null;
+                    // Remove video track from peer connection if it exists
+                    if (videoSender) {
+                        videoSender.replaceTrack(null);
+                    }
                 }
-
-                localVideo.srcObject = camStream;
             };
         } catch (err) {
             console.error("❌ Error sharing screen:", err);
@@ -470,6 +735,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     function sendMessage() {
         const text = input.value.trim();
+        appendSystemMessage("💬 Sending message:", text);
+        appendSystemMessage("💬 Data channel:", dataChannel);
         if (text !== "" && dataChannel && dataChannel.readyState === "open") {
             const message = JSON.stringify({
                 type: "textMessage",

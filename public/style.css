@@ -431,3 +431,55 @@ body {
 	height: auto;
 	display: block;
 }
+
+/* Authentication and Profile State Styles */
+.profile.current-user {
+	border-left: 3px solid #4CAF50;
+	position: relative;
+}
+
+.profile.current-user::before {
+	content: "YOU";
+	position: absolute;
+	top: 10px;
+	right: 10px;
+	background: #4CAF50;
+	color: white;
+	padding: 2px 8px;
+	border-radius: 12px;
+	font-size: 10px;
+	font-weight: bold;
+	z-index: 10;
+}
+
+.profile.peer-user {
+	border-left: 3px solid #2196F3;
+	position: relative;
+}
+
+.profile.peer-user::before {
+	content: "PEER";
+	position: absolute;
+	top: 10px;
+	right: 10px;
+	background: #2196F3;
+	color: white;
+	padding: 2px 8px;
+	border-radius: 12px;
+	font-size: 10px;
+	font-weight: bold;
+	z-index: 10;
+}
+
+/* Navbar logout link styling */
+.navbar a {
+	background-color: transparent;
+	text-decoration: none;
+	color: #ff6b6b;
+	transition: color 0.3s ease;
+}
+
+.navbar a:hover {
+	color: #ff4757;
+	background-color: transparent;
+}
