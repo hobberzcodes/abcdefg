@@ -1,32 +1,30 @@
-@import url('https://fonts.googleapis.com/css?family=Montserrat:400,800');
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap');
 
 * {
     box-sizing: border-box;
 }
 
 body {
-    background: #f6f5f7;
+    background: #121212;
     display: flex;
     justify-content: center;
     align-items: center;
     flex-direction: column;
-    font-family: 'Montserrat', sans-serif;
-    height: 100vh;
-    margin: -20px 0 50px;
+    font-family: 'Poppins', sans-serif;
+    min-height: 100vh;
+    margin: 0;
+    color: #e0e0e0;
 }
 
 h1 {
-    font-weight: bold;
+    font-weight: 600;
     margin: 0;
-}
-
-h2 {
-    text-align: center;
+    color: #ffffff;
 }
 
 p {
     font-size: 14px;
-    font-weight: 100;
+    font-weight: 400;
     line-height: 20px;
     letter-spacing: 0.5px;
     margin: 20px 0 30px;
@@ -34,26 +32,38 @@ p {
 
 span {
     font-size: 12px;
+    color: #a0a0a0;
 }
 
 a {
-    color: #333;
+    color: #e0e0e0;
     font-size: 14px;
     text-decoration: none;
     margin: 15px 0;
+    transition: color 0.3s ease;
+}
+
+a:hover {
+    color: #00bcd4;
 }
 
 button {
     border-radius: 20px;
-    border: 1px solid #232323;
-    background-color: #2a2a2a;
-    color: #FFFFFF;
+    border: 1px solid #00bcd4;
+    background-color: #00bcd4;
+    color: #121212;
     font-size: 12px;
-    font-weight: bold;
+    font-weight: 600;
     padding: 12px 45px;
     letter-spacing: 1px;
     text-transform: uppercase;
-    transition: transform 80ms ease-in;
+    transition: transform 80ms ease-in, background-color 0.3s ease, color 0.3s ease;
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: transparent;
+    color: #00bcd4;
 }
 
 button:active {
@@ -66,38 +76,67 @@ button:focus {
 
 button.ghost {
     background-color: transparent;
-    border-color: #FFFFFF;
+    border-color: #ffffff;
+    color: #ffffff;
+}
+
+button.ghost:hover {
+    background-color: #ffffff;
+    color: #121212;
 }
 
 form {
-    background-color: #FFFFFF;
+    background-color: #1e1e1e;
     display: flex;
     align-items: center;
     justify-content: center;
     flex-direction: column;
-    padding: 0 50px;
+    padding: 10px 50px;
     height: 100%;
     text-align: center;
+    border-radius: 10px;
 }
 
-input {
-    background-color: #eee;
-    border: none;
+input,
+select {
+    background-color: #333333;
+    color: #ffffff;
+    border: 1px solid #444444;
+    border-radius: 8px;
     padding: 12px 15px;
     margin: 8px 0;
     width: 100%;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+input:focus,
+select:focus {
+    border-color: #00bcd4;
+    box-shadow: 0 0 5px #00bcd4;
+    outline: none;
+}
+
+select {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%23ffffff'%3e%3cpath fill-rule='evenodd' d='M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z' clip-rule='evenodd' /%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 0.7em top 50%;
+    background-size: 0.65em auto;
+    cursor: pointer;
 }
 
 .container {
-    background-color: #fff;
+    background-color: #1e1e1e;
     border-radius: 10px;
-    box-shadow: 0 14px 28px rgba(0,0,0,0.25), 
-                0 10px 10px rgba(0,0,0,0.22);
+    box-shadow: 0 14px 28px rgba(0, 0, 0, 0.25),
+        0 10px 10px rgba(0, 0, 0, 0.22);
     position: relative;
     overflow: hidden;
     width: 768px;
     max-width: 100%;
-    min-height: 480px;
+    min-height: 700px;
 }
 
 .form-container {
@@ -132,12 +171,15 @@ input {
 }
 
 @keyframes show {
-    0%, 49.99% {
+
+    0%,
+    49.99% {
         opacity: 0;
         z-index: 1;
     }
-    
-    50%, 100% {
+
+    50%,
+    100% {
         opacity: 1;
         z-index: 5;
     }
@@ -154,18 +196,18 @@ input {
     z-index: 100;
 }
 
-.container.right-panel-active .overlay-container{
+.container.right-panel-active .overlay-container {
     transform: translateX(-100%);
 }
 
 .overlay {
-    background: #000000;
+    background: #383838;
     background: -webkit-linear-gradient(to right, #383838, #1e1e1e);
     background: linear-gradient(to right, #383838, #1e1e1e);
     background-repeat: no-repeat;
     background-size: cover;
     background-position: 0 0;
-    color: #FFFFFF;
+    color: #ffffff;
     position: relative;
     left: -100%;
     height: 100%;
@@ -215,7 +257,7 @@ input {
 }
 
 .social-container a {
-    border: 1px solid #DDDDDD;
+    border: 1px solid #444444;
     border-radius: 50%;
     display: inline-flex;
     justify-content: center;
@@ -223,4 +265,15 @@ input {
     margin: 0 5px;
     height: 40px;
     width: 40px;
+    transition: border-color 0.3s ease, transform 0.3s ease;
+}
+
+.social-container a:hover {
+    border-color: #00bcd4;
+    transform: scale(1.1);
+}
+
+.social-container i {
+    color: #e0e0e0;
+    transition: color 0.3s ease;
 }

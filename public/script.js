@@ -1,6 +1,3 @@
-// =======================
-// Chat + WebRTC Client
-// =======================
 document.addEventListener("DOMContentLoaded", async () => {
     const input = document.querySelector(".chat-input input");
     const sendBtn = document.querySelector(".send-btn");
@@ -10,7 +7,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     const localVideo = document.getElementById("localVideo");
     const remoteVideo = document.getElementById("remoteVideo");
-    
+
     // Get the profile card elements by their new IDs
     const usernameDisplay = document.getElementById("username-display");
     const pfpImage = document.getElementById("pfp-image");
@@ -24,7 +21,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     let dataChannel;
     let isSearching = false;
     let searchTimeout;
-    
+
     // Store the remote user's profile info
     let remoteUserProfile = {};
 
@@ -48,7 +45,6 @@ document.addEventListener("DOMContentLoaded", async () => {
             },
         ],
     };
-
 
     let wsUrl = location.origin.replace(/^http/, "ws");
     if (location.protocol === "https:") {
@@ -80,12 +76,10 @@ document.addEventListener("DOMContentLoaded", async () => {
             isSearching = false;
             clearTimeout(searchTimeout);
             console.log("🤝 Peer found:", data.peerId);
-            
-            // --- NEW: Load peer's profile from Supabase
+
             if (data.peerId) {
-                 await loadPeerProfile(data.peerId);
+                await loadPeerProfile(data.peerId);
             }
-            // --- END NEW
 
             if (data.isCaller) {
                 appendSystemMessage("🤝 Found a peer! Initiating call...");
@@ -124,42 +118,76 @@ document.addEventListener("DOMContentLoaded", async () => {
                 }
             }
         } else if (data.type === "skipToNext") {
-            console.log("👉 Other user skipped. Automatically searching for next peer...");
-            appendSystemMessage("👋 The other user skipped. Searching for a new connection...");
+            console.log(
+                "👉 Other user skipped. Automatically searching for next peer...",
+            );
+            appendSystemMessage(
+                "👋 The other user skipped. Searching for a new connection...",
+            );
             resetConnection();
             chatBox.innerHTML = "";
             startSearch();
         }
     };
 
-    // --- NEW FUNCTION: Fetch peer profile from database ---
+    // Corrected function to fetch peer profile using the correct Supabase column names
     async function loadPeerProfile(peerId) {
-        const { data: profile, error } = await supabaseClient
-            .from('profiles')
-            .select('username, pfp_url, banner_url') // Select only the required columns
-            .eq('id', peerId)
-            .single();
-
-        if (error || !profile) {
-            console.error("Error fetching peer profile:", error);
-            // Revert to default or show an error state
-            usernameDisplay.textContent = "Unknown User";
-            pfpImage.src = "pfp.png";
-            bannerImage.src = "defbanner.png";
+        if (!supabaseClient) {
+            console.error("🚨 Supabase client not initialized.");
             return;
         }
 
-        // Store the profile for later use (e.g., chat messages)
+        // Add a check to validate the UUID format before querying Supabase
+        const isUUID =
+            /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+                peerId,
+            );
+        if (!isUUID) {
+            console.warn(
+                `⚠️ Received invalid ID from signaling server: ${peerId}`,
+            );
+            appendSystemMessage(
+                "⚠️ Invalid user ID received from the server. Could not load profile.",
+            );
+            usernameDisplay.textContent = "Unknown User";
+            pfpImage.src = "pfp.png";
+            bannerImage.src = "defbanner.png";
+            remoteUserProfile = { username: "Friend" };
+            return;
+        }
+
+        console.log(`🔍 Attempting to load profile for peer ID: ${peerId}`);
+        const { data: profile, error } = await supabaseClient
+            .from("profiles")
+            .select("username, profile_picture, banner") // Corrected column names
+            .eq("id", peerId)
+            .single();
+
+        if (error) {
+            console.error("Error fetching peer profile:", error.message);
+            usernameDisplay.textContent = "Unknown User";
+            pfpImage.src = "pfp.png";
+            bannerImage.src = "defbanner.png";
+            remoteUserProfile = { username: "Friend" };
+            return;
+        }
+
+        if (!profile) {
+            console.warn(`⚠️ No profile found for peer ID: ${peerId}`);
+            usernameDisplay.textContent = "Unknown User";
+            pfpImage.src = "pfp.png";
+            bannerImage.src = "defbanner.png";
+            remoteUserProfile = { username: "Friend" };
+            return;
+        }
+
         remoteUserProfile = profile;
-        console.log("Loaded remote user profile:", remoteUserProfile);
+        console.log("✅ Loaded remote user profile:", remoteUserProfile);
 
-        // Update the DOM with the fetched data
         usernameDisplay.textContent = remoteUserProfile.username;
-        pfpImage.src = remoteUserProfile.pfp_url || "pfp.png";
-        bannerImage.src = remoteUserProfile.banner_url || "defbanner.png";
+        pfpImage.src = remoteUserProfile.profile_picture || "pfp.png";
+        bannerImage.src = remoteUserProfile.banner || "defbanner.png";
     }
-    // --- END NEW FUNCTION ---
-
 
     async function initMedia() {
         try {
@@ -168,24 +196,35 @@ document.addEventListener("DOMContentLoaded", async () => {
                 audio: true,
             });
             localVideo.srcObject = localStream;
-            await new Promise((resolve) => (localVideo.onloadedmetadata = resolve));
+            await new Promise(
+                (resolve) => (localVideo.onloadedmetadata = resolve),
+            );
             console.log("🎤 Camera and mic initialized and ready.");
         } catch (err) {
             console.error("❌ Error accessing camera/mic:", err);
-            appendSystemMessage("🚨 Error: Please allow access to your camera and microphone.");
+            appendSystemMessage(
+                "🚨 Error: Please allow access to your camera and microphone.",
+            );
         }
     }
     await initMedia();
 
     function setupPeerConnection() {
-        localStream.getTracks().forEach((track) => peerConnection.addTrack(track, localStream));
+        localStream
+            .getTracks()
+            .forEach((track) => peerConnection.addTrack(track, localStream));
         peerConnection.ontrack = (event) => {
             console.log("🎥 Remote stream received");
             remoteVideo.srcObject = event.streams[0];
         };
         peerConnection.onicecandidate = (event) => {
             if (event.candidate) {
-                socket.send(JSON.stringify({ type: "candidate", candidate: event.candidate }));
+                socket.send(
+                    JSON.stringify({
+                        type: "candidate",
+                        candidate: event.candidate,
+                    }),
+                );
             }
         };
         peerConnection.ondatachannel = (event) => {
@@ -239,16 +278,13 @@ document.addEventListener("DOMContentLoaded", async () => {
         remoteVideo.srcObject = null;
         dataChannel = null;
         chatBox.innerHTML = "";
-        
-        // --- NEW: Reset the profile card ---
+
         usernameDisplay.textContent = "Username";
         pfpImage.src = "pfp.png";
         bannerImage.src = "defbanner.png";
         remoteUserProfile = {};
-        // --- END NEW ---
     }
 
-    // Skip to next (single click)
     skipButton.addEventListener("click", () => {
         appendSystemMessage("📞 Disconnecting from current user.");
         socket.send(JSON.stringify({ type: "skipToNext" }));
@@ -256,7 +292,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         startSearch();
     });
 
-    // Stop searching completely (double click)
     skipButton.addEventListener("dblclick", () => {
         stopSearch();
         resetConnection();
@@ -267,26 +302,32 @@ document.addEventListener("DOMContentLoaded", async () => {
     // =========================
     shareScreenButton.addEventListener("click", async () => {
         if (!peerConnection) {
-            appendSystemMessage("🚨 Cannot share screen. No active connection.");
+            appendSystemMessage(
+                "🚨 Cannot share screen. No active connection.",
+            );
             return;
         }
 
         try {
             const screenStream = await navigator.mediaDevices.getDisplayMedia({
                 video: true,
-                audio: true, // <-- system audio if user checks "Share audio"
+                audio: true,
             });
 
             const screenTrack = screenStream.getVideoTracks()[0];
             const systemAudioTrack = screenStream.getAudioTracks()[0];
 
-            const videoSender = peerConnection.getSenders().find((s) => s.track && s.track.kind === "video");
+            const videoSender = peerConnection
+                .getSenders()
+                .find((s) => s.track && s.track.kind === "video");
             if (videoSender) {
                 videoSender.replaceTrack(screenTrack);
             }
 
             if (systemAudioTrack) {
-                console.log("🎶 Adding system audio track from screen share...");
+                console.log(
+                    "🎶 Adding system audio track from screen share...",
+                );
                 peerConnection.addTrack(systemAudioTrack, screenStream);
             }
 
@@ -294,7 +335,9 @@ document.addEventListener("DOMContentLoaded", async () => {
             appendSystemMessage("🖥️ Sharing your screen...");
 
             screenTrack.onended = async () => {
-                appendSystemMessage("📷 Screen share ended. Restoring camera...");
+                appendSystemMessage(
+                    "📷 Screen share ended. Restoring camera...",
+                );
                 const camStream = await navigator.mediaDevices.getUserMedia({
                     video: true,
                     audio: true,
@@ -317,6 +360,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     // =========================
     // Chat + file transfer
     // =========================
+    function getSenderName() {
+        return remoteUserProfile.username || "Friend";
+    }
+
     function appendMessage(text, sender = "You") {
         const msg = document.createElement("div");
         msg.classList.add("message");
@@ -347,9 +394,11 @@ document.addEventListener("DOMContentLoaded", async () => {
           <a href="${audioData}" download="${fileName}" class="download-btn">⬇️</a>
       `;
         const audioElement = new Audio(audioData);
-        const playPauseBtn = audioPlayerContainer.querySelector(".play-pause-btn");
+        const playPauseBtn =
+            audioPlayerContainer.querySelector(".play-pause-btn");
         const timeSlider = audioPlayerContainer.querySelector(".audio-slider");
-        const currentTimeSpan = audioPlayerContainer.querySelector(".current-time");
+        const currentTimeSpan =
+            audioPlayerContainer.querySelector(".current-time");
         const totalTimeSpan = audioPlayerContainer.querySelector(".total-time");
 
         playPauseBtn.addEventListener("click", () => {
@@ -363,7 +412,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         });
 
         audioElement.addEventListener("timeupdate", () => {
-            const progress = (audioElement.currentTime / audioElement.duration) * 100;
+            const progress =
+                (audioElement.currentTime / audioElement.duration) * 100;
             timeSlider.value = progress;
 
             const currentMinutes = Math.floor(audioElement.currentTime / 60);
@@ -421,12 +471,17 @@ document.addEventListener("DOMContentLoaded", async () => {
     function sendMessage() {
         const text = input.value.trim();
         if (text !== "" && dataChannel && dataChannel.readyState === "open") {
-            const message = JSON.stringify({ type: "textMessage", content: text });
+            const message = JSON.stringify({
+                type: "textMessage",
+                content: text,
+            });
             dataChannel.send(message);
             appendMessage(text, "You");
             input.value = "";
         } else if (!dataChannel || dataChannel.readyState !== "open") {
-            appendSystemMessage("🚨 Cannot send message. Chat channel is not connected.");
+            appendSystemMessage(
+                "🚨 Cannot send message. Chat channel is not connected.",
+            );
         }
     }
 
@@ -440,16 +495,22 @@ document.addEventListener("DOMContentLoaded", async () => {
             console.log("💬 Message received:", event.data);
             try {
                 const message = JSON.parse(event.data);
+                const senderName = getSenderName();
+
                 if (message.type === "audioMessage") {
-                    appendAudioMessage(message.audioData, message.fileName, remoteUserProfile.username || "Friend");
+                    appendAudioMessage(
+                        message.audioData,
+                        message.fileName,
+                        senderName,
+                    );
                 } else if (message.type === "imageMessage") {
-                    appendImageMessage(message.imageData, remoteUserProfile.username || "Friend");
+                    appendImageMessage(message.imageData, senderName);
                 } else if (message.type === "textMessage") {
-                    appendMessage(message.content, remoteUserProfile.username || "Friend");
+                    appendMessage(message.content, senderName);
                 }
             } catch (e) {
                 console.error("Failed to parse message as JSON:", e);
-                appendMessage(event.data, remoteUserProfile.username || "Friend");
+                appendMessage(event.data, getSenderName());
             }
         };
         dataChannel.onclose = () => {
@@ -479,7 +540,9 @@ document.addEventListener("DOMContentLoaded", async () => {
                 };
                 reader.readAsDataURL(file);
             } else {
-                appendSystemMessage("🚨 Cannot send audio. Chat channel is not connected.");
+                appendSystemMessage(
+                    "🚨 Cannot send audio. Chat channel is not connected.",
+                );
             }
         }
     });
@@ -500,7 +563,9 @@ document.addEventListener("DOMContentLoaded", async () => {
                 };
                 reader.readAsDataURL(file);
             } else {
-                appendSystemMessage("🚨 Cannot send image. Chat channel is not connected.");
+                appendSystemMessage(
+                    "🚨 Cannot send image. Chat channel is not connected.",
+                );
             }
         }
     });

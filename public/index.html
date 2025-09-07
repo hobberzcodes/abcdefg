@@ -126,8 +126,14 @@
       </section>
     </main>
 
+    <!--
+      The order of these scripts is important!
+      1. Load the Supabase library from a CDN.
+      2. Load the database.js file that creates the Supabase client.
+      3. Load your main script.js file that uses the client.
+    -->
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script src="database.js"></script>
-    <script src="script-fixed.js"></script>
+    <script src="script.js"></script>
   </body>
 </html>

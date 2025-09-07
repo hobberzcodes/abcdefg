@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>My Website</title>
+    <link rel="stylesheet" href="style.css" />
+    <link rel="icon" href="./favicon.ico" type="image/x-icon" />
+  </head>
+  <body>
+    <nav class="navbar">
+      <img src="logo.png" width="70px" height="70px" />
+      <h1>SoundLink</h1>
+      <ul>
+        <li href="#">Home</li>
+        <li href="#">Social</li>
+        <li href="#">Settings</li>
+        <li> <a href="login.html">Logout</a></li>
+      </ul>
+    </nav>
+
+    <main>
+      <div class="cameras" style="margin-top: 10px">
+        <video
+          id="remoteVideo"
+          width="500"
+          height="273"
+          autoplay
+          playsinline
+        ></video>
+
+        <div class="local-wrapper">
+          <video id="localVideo" autoplay muted playsinline></video>
+        </div>
+      </div>
+
+      <div class="profile">
+        <div class="top-profile">
+          <div class="userpfp">
+            <img id="pfp-image" src="pfp.png" width="65px" height="65px" />
+          </div>
+          <div class="user">
+            <div class="un">
+              <h1 id="username-display">Username</h1>
+              <img
+                class="verified"
+                src="verified.png"
+                width="20px"
+                height="20px"
+              />
+            </div>
+            <h2 class="friends">12 friends 0 mutual</h2>
+          </div>
+        </div>
+
+        <div class="banner-wrapper">
+          <img
+            id="banner-image"
+            class="banner"
+            src="defbanner.png"
+            height="170px"
+            width="400px"
+          />
+          <div class="tag">ARTIST</div>
+        </div>
+
+        <div class="platforms">
+          <a href="#"
+            ><img src="platforms/spotify.png" width="60px" height="60px"
+          /></a>
+          <a href="#"
+            ><img src="platforms/youtube.png" width="60px" height="60px"
+          /></a>
+          <a href="#"
+            ><img src="platforms/tiktok.png" width="60px" height="60px"
+          /></a>
+          <a href="#"
+            ><img src="platforms/instagram.png" width="60px" height="60px"
+          /></a>
+        </div>
+        <div class="bio">
+          <p>
+            Hello my name is officialhobberz im an artist from<br />
+            England who is looking to make some music!
+          </p>
+        </div>
+        <div class="add-and-more">
+          <div class="add"><h1>ADD FRIEND</h1></div>
+          <div class="more"><h1>•••</h1></div>
+        </div>
+      </div>
+
+      <div class="middle-buttons">
+        <button class="action-btn"><img src="icons/premium.png" /></button>
+        <button class="action-btn"><img src="icons/report.png" /></button>
+        <button class="action-btn" id="shareScreenButton">
+          <img src="icons/sharescreen.png" />
+        </button>
+
+        <button class="action-btn" id="skipButton">
+          <img src="icons/skip.png" />
+        </button>
+      </div>
+
+      <section class="chat-section">
+        <div class="chat-box"></div>
+        <div class="chat-input">
+          <input type="text" placeholder="Type a message..." />
+          <label class="file-upload-btn" for="audioUpload">🎵</label>
+          <input
+            type="file"
+            id="audioUpload"
+            accept="audio/*"
+            style="display: none"
+          />
+          <label class="file-upload-btn" for="imageUpload">🖼️</label>
+          <input
+            type="file"
+            id="imageUpload"
+            accept="image/*"
+            style="display: none"
+          />
+          <button class="send-btn">➤</button>
+        </div>
+      </section>
+    </main>
+
+    <!--
+      The order of these scripts is important!
+      1. Load the Supabase library from a CDN.
+      2. Load the database.js file that creates the Supabase client.
+      3. Load your main script.js file that uses the client.
+    -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script src="database.js"></script>
+    <script src="script.js"></script>
+  </body>
+</html>
