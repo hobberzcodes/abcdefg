@@ -130,10 +130,12 @@
       The order of these scripts is important!
       1. Load the Supabase library from a CDN.
       2. Load the database.js file that creates the Supabase client.
-      3. Load your main script.js file that uses the client.
+      3. Load the auth-manager.js for authentication state management.
+      4. Load your main script.js file that uses the client and auth data.
     -->
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script src="database.js"></script>
+    <script src="auth-manager.js"></script>
     <script src="script.js"></script>
   </body>
 </html>
