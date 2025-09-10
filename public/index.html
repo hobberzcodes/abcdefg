@@ -13,10 +13,10 @@
       <img src="logo.png" width="70px" height="70px" />
       <h1>SoundLink</h1>
       <ul>
-        <li href="#">Home</li>
-        <li href="#">Social</li>
-        <li href="#">Settings</li>
-        <li> <a href="login.html">Logout</a></li>
+        <li class="indicator">Meet</li>
+        <li><a class="tabs" href="#">Social</a></li>
+        <li><a class="tabs" href="settings.html">Settings</a></li>
+        <li><a class="logout" href="login.html">Logout</a></li>
       </ul>
     </nav>
 
@@ -43,12 +43,23 @@
           <div class="user">
             <div class="un">
               <h1 id="username-display">Username</h1>
-              <img
-                class="verified"
-                src="verified.png"
-                width="20px"
-                height="20px"
-              />
+              <div class="badges">
+                <img
+                  id="verify-badge"
+                  class="verified"
+                  src="verified.png"
+                  width="20px"
+                  height="20px"
+                />
+                <img
+                  id="premium-badge"
+                  class="premium"
+                  src="premium.png"
+                  width="20px"
+                  height="20px"
+                />
+              </div>
+
             </div>
             <h2 class="friends">12 friends 0 mutual</h2>
           </div>
@@ -66,21 +77,21 @@
         </div>
 
         <div class="platforms">
-          <a href="#"
+          <a id="spotify-link" href="#"
             ><img src="platforms/spotify.png" width="60px" height="60px"
           /></a>
-          <a href="#"
+          <a id="youtube-link" href="#"
             ><img src="platforms/youtube.png" width="60px" height="60px"
           /></a>
-          <a href="#"
+          <a id="tiktok-link" href="#"
             ><img src="platforms/tiktok.png" width="60px" height="60px"
           /></a>
-          <a href="#"
+          <a id="instagram-link" href="#"
             ><img src="platforms/instagram.png" width="60px" height="60px"
           /></a>
         </div>
         <div class="bio">
-          <p>
+          <p id="profile-description">
             Hello my name is officialhobberz im an artist from<br />
             England who is looking to make some music!
           </p>

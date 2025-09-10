@@ -124,12 +124,32 @@ main {
 	margin-bottom: 2px;
 }
 
-.verified {
-	margin-top: 25px;
-	margin-left: 10px;
+/* ✅ Badges container */
+.badges {
+	display: flex;
+	align-items: center;
+	gap: 5px;          /* consistent spacing between badges */
+	margin-left: 10px; /* space from username */
+	margin-top: 25px;  /* vertical alignment */
 }
 
-.user img {
+/* ✅ Badge images */
+.badges img,
+#verify-badge,
+#premium-badge {
+	margin: 0 !important;
+	padding: 0 !important;
+	display: block;
+	width: 20px;
+	height: 20px;
+
+	/* Round + Ring */
+	border-radius: 50%;
+	border: 3px solid #545454;  /* thinner than avatar’s 5px */
+	background-color: #303030;  /* match page background so ring looks clean */
+}
+/* ✅ Avatar only (doesn't affect badges) */
+.user img.avatar {
 	margin-right: 20px;
 	border-radius: 50%;
 	border: #545454 solid 5px;
@@ -158,6 +178,14 @@ main {
 	text-align: center;
 }
 
+.platforms {
+	margin-bottom: 10px;
+}
+
+#verify-badge {
+	display: none;
+}
+
 .platforms img {
 	margin-top: 10px;
 	margin-left: 5px;
@@ -171,6 +199,17 @@ main {
 	padding: 5px;
 	border: #545454 5px solid;
 	border-radius: 25px;
+	max-height: 6em;
+	overflow: hidden;
+}
+
+.bio p {
+	margin: 0;
+	line-height: 1.5em;
+	display: -webkit-box;
+	-webkit-box-orient: vertical;
+	overflow: hidden;
+	text-overflow: ellipsis;
 }
 
 .add-and-more {
@@ -482,4 +521,13 @@ body {
 .navbar a:hover {
 	color: #ff4757;
 	background-color: transparent;
+}
+
+.navbar ul li a.tabs {
+	text-decoration: none;
+	color: white;
+}
+
+.indicator {
+	border-bottom: white solid 2px;
 }

@@ -9,12 +9,15 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
     
     console.log("✅ User authenticated, initializing app...");
+
+    
     
     const input = document.querySelector(".chat-input input");
     const sendBtn = document.querySelector(".send-btn");
     const chatBox = document.querySelector(".chat-box");
     const skipButton = document.getElementById("skipButton");
     const shareScreenButton = document.getElementById("shareScreenButton");
+    
 
     const localVideo = document.getElementById("localVideo");
     const remoteVideo = document.getElementById("remoteVideo");
@@ -23,7 +26,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     const usernameDisplay = document.getElementById("username-display");
     const pfpImage = document.getElementById("pfp-image");
     const bannerImage = document.getElementById("banner-image");
-
+    const verifyBadge = document.getElementById("verify-badge");
+    const premiumBadge = document.getElementById("premium-badge");
     const audioUploadInput = document.getElementById("audioUpload");
     const imageUploadInput = document.getElementById("imageUpload");
     
@@ -74,14 +78,15 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
     
     // Display user profile in the profile panel
+    // Display user profile in the profile panel
     function displayUserProfile(profile, isCurrentUser = false) {
         console.log("👤 Displaying profile:", profile, "Current user:", isCurrentUser);
-        
+
         // Update username display
         if (usernameDisplay && profile.username) {
             usernameDisplay.textContent = profile.username;
         }
-        
+
         // Update profile picture
         if (pfpImage && profile.profile_picture) {
             pfpImage.src = profile.profile_picture;
@@ -90,7 +95,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                 pfpImage.src = "pfp.png";
             };
         }
-        
+
         // Update banner image
         if (bannerImage && profile.banner) {
             bannerImage.src = profile.banner;
@@ -99,20 +104,67 @@ document.addEventListener("DOMContentLoaded", async () => {
                 bannerImage.src = "defbanner.png";
             };
         }
+
+        // Update verification badge
         
+        if (verifyBadge) {
+            if (profile.verified) {
+                verifyBadge.style.display = "inline-block"; // or "block" depending on layout
+            } else {
+                verifyBadge.style.display = "none";
+            }
+        }
+        // Update premium badge
+        
+        if (premiumBadge) {
+            if (profile.premium) {
+                premiumBadge.style.display = "inline-block"; // show if premium
+            } else {
+                premiumBadge.style.display = "none"; // hide if not
+            }
+        }
+
         // Update tag if available
         const tagElement = document.querySelector('.tag');
         if (tagElement && profile.tag) {
             tagElement.textContent = profile.tag.toUpperCase();
         }
-        
+
+        // Update description/bio
+        const bioElement = document.getElementById("profile-description");
+        if (bioElement) {
+            bioElement.textContent = profile.description || "";
+            bioElement.style.display = profile.description ? "block" : "none";
+        }
+
+        // Update social links
+        const socials = {
+            spotify: "spotify-link",
+            youtube: "youtube-link",
+            tiktok: "tiktok-link",
+            instagram: "instagram-link",
+        };
+
+        Object.entries(socials).forEach(([field, elementId]) => {
+            const el = document.getElementById(elementId);
+            if (el) {
+                if (profile[field]) {
+                    el.href = profile[field];
+                    el.style.display = "inline-block";
+                } else {
+                    el.removeAttribute("href");
+                    el.style.display = "none";
+                }
+            }
+        });
+
         // Add visual indicator for current user vs peer
         const profileContainer = document.querySelector('.profile');
         if (profileContainer) {
             profileContainer.classList.toggle('current-user', isCurrentUser);
             profileContainer.classList.toggle('peer-user', !isCurrentUser);
         }
-        
+
         console.log(`✅ Profile display updated for ${isCurrentUser ? 'current user' : 'peer'}`);
     }
 
@@ -143,28 +195,34 @@ document.addEventListener("DOMContentLoaded", async () => {
     function getCurrentUserForSocket() {
         const currentUser = authManager.getCurrentUser();
         const currentUserProfile = authManager.getCurrentUserProfile();
-        
+
         if (!currentUser) {
             console.error("❌ No authenticated user available for socket communication");
             return null;
         }
-        
+
         return {
             userId: currentUser.id,
             userProfile: {
                 username: currentUserProfile?.username || currentUser.email?.split('@')[0] || 'Unknown',
                 profile_picture: currentUserProfile?.profile_picture || 'pfp.png',
                 banner: currentUserProfile?.banner || 'defbanner.png',
-                tag: currentUserProfile?.tag || 'User'
+                tag: currentUserProfile?.tag || 'User',
+                description: currentUserProfile?.description || "",
+                spotify: currentUserProfile?.spotify || "",
+                youtube: currentUserProfile?.youtube || "",
+                tiktok: currentUserProfile?.tiktok || "",
+                instagram: currentUserProfile?.instagram || ""
             }
         };
     }
+
 
     function initializeSocket() {
         // Verify authentication before initializing socket
         if (!authManager.isAuthenticated()) {
             console.error("❌ Cannot initialize socket - user not authenticated");
-            appendSystemMessage("🚨 Authentication required for socket connection");
+            
             return;
         }
 
@@ -177,23 +235,23 @@ document.addEventListener("DOMContentLoaded", async () => {
         socket.onopen = () => {
             const currentUser = authManager.getCurrentUser();
             console.log("🔌 Connected to signaling server as user:", currentUser?.id);
-            appendSystemMessage("✅ Connected to signaling server");
+            
             startSearch();
         };
 
         socket.onclose = () => {
             console.log("🔌 Disconnected from signaling server");
-            appendSystemMessage("❌ Disconnected from signaling server");
+            
         };
 
         socket.onerror = (err) => {
             console.error("⚠️ WebSocket error:", err);
-            appendSystemMessage("⚠️ WebSocket connection error — check your connection");
+            
             
             // Check if the error might be due to authentication issues
             if (!authManager.isAuthenticated()) {
                 console.error("❌ Socket error may be due to authentication failure");
-                appendSystemMessage("🚨 Authentication error - please login again");
+                
             }
         };
 
@@ -205,7 +263,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                 // Verify we're still authenticated before processing messages
                 if (!authManager.isAuthenticated()) {
                     console.error("❌ Received socket message but user is not authenticated");
-                    appendSystemMessage("🚨 Authentication lost - please refresh the page");
+                    
                     return;
                 }
 
@@ -241,10 +299,10 @@ document.addEventListener("DOMContentLoaded", async () => {
                 }
 
                 if (data.isCaller) {
-                    appendSystemMessage("🤝 Found a peer! Initiating call...");
+                    
                     createOffer();
                 } else {
-                    appendSystemMessage("🤝 Found a peer! Waiting for call...");
+                    
                 }
             } else if (data.type === "offer") {
                 console.log("📡 Received offer");
@@ -282,20 +340,20 @@ document.addEventListener("DOMContentLoaded", async () => {
                 console.log(
                     "👉 Other user skipped. Automatically searching for next peer...",
                 );
-                appendSystemMessage(
-                    "👋 The other user skipped. Searching for a new connection...",
-                );
+                
+                
                 resetConnection();
                 chatBox.innerHTML = "";
                 startSearch();
             }
         } catch (error) {
             console.error("❌ Error processing socket message:", error);
-            appendSystemMessage("⚠️ Error processing server message");
+            
         }
         };
     }
 
+    // Function to fetch peer profile from database using UUID
     // Function to fetch peer profile from database using UUID
     async function loadPeerProfileByUUID(userUUID) {
         if (!supabaseClient) {
@@ -305,21 +363,20 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         // Validate the UUID format before querying Supabase
         const isUUID =
-            /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
-                userUUID,
-            );
+            /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userUUID);
         if (!isUUID) {
-            console.warn(
-                `⚠️ Invalid UUID format received: ${userUUID}`,
-            );
-            appendSystemMessage(
-                "⚠️ Invalid user ID format. Could not load peer profile.",
-            );
+            console.warn(`⚠️ Invalid UUID format received: ${userUUID}`);
+            appendSystemMessage("⚠️ Invalid user ID format. Could not load peer profile.");
             remoteUserProfile = { 
                 username: "Unknown User", 
                 profile_picture: "pfp.png", 
                 banner: "defbanner.png",
-                tag: "User"
+                tag: "User",
+                description: "",
+                spotify: "",
+                youtube: "",
+                tiktok: "",
+                instagram: ""
             };
             displayUserProfile(remoteUserProfile, false);
             return;
@@ -328,17 +385,34 @@ document.addEventListener("DOMContentLoaded", async () => {
         console.log(`🔍 Loading peer profile for UUID: ${userUUID}`);
         const { data: profile, error } = await supabaseClient
             .from("profiles")
-            .select("username, profile_picture, banner, tag") // Include tag field as well
+            .select(`
+                username,
+                profile_picture,
+                banner,
+                tag,
+                description,
+                verified,
+                premium,
+                spotify,
+                youtube,
+                tiktok,
+                instagram
+            `)
             .eq("id", userUUID)
             .single();
 
         if (error) {
-            console.error("Error fetching peer profile:", error.message);
+            console.error("❌ Error fetching peer profile:", error.message);
             remoteUserProfile = { 
                 username: "Unknown User", 
                 profile_picture: "pfp.png", 
                 banner: "defbanner.png",
-                tag: "User"
+                tag: "User",
+                description: "",
+                spotify: "",
+                youtube: "",
+                tiktok: "",
+                instagram: ""
             };
             displayUserProfile(remoteUserProfile, false);
             return;
@@ -350,7 +424,12 @@ document.addEventListener("DOMContentLoaded", async () => {
                 username: "Unknown User", 
                 profile_picture: "pfp.png", 
                 banner: "defbanner.png",
-                tag: "User"
+                tag: "User",
+                description: "",
+                spotify: "",
+                youtube: "",
+                tiktok: "",
+                instagram: ""
             };
             displayUserProfile(remoteUserProfile, false);
             return;
@@ -359,9 +438,10 @@ document.addEventListener("DOMContentLoaded", async () => {
         remoteUserProfile = profile;
         console.log("✅ Loaded remote user profile:", remoteUserProfile);
 
-        // Use the new displayUserProfile function to show peer's profile
+        // Show peer's profile in UI
         displayUserProfile(remoteUserProfile, false);
     }
+
 
     async function initMedia() {
         // Return early if media initialization has already been attempted
@@ -388,9 +468,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             
         } catch (err) {
             console.error("❌ Error accessing camera/mic:", err);
-            appendSystemMessage(
-                "⚠️ Could not access camera/microphone. You can still use text chat.",
-            );
+            
             console.warn("⚠️ Proceeding without media access - text chat only");
             localStream = null; // Explicitly set to null for clarity
         }
@@ -458,12 +536,12 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     function startSearch() {
         isSearching = true;
-        appendSystemMessage("🔍 Searching for a new connection...");
+        
         
         // Get current user info for socket message
         const userInfo = getCurrentUserForSocket();
         if (!userInfo) {
-            appendSystemMessage("🚨 Authentication required to search for connections");
+            
             return;
         }
         
@@ -477,7 +555,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         searchTimeout = setTimeout(() => {
             if (isSearching) {
-                appendSystemMessage("🤔 Still searching...");
+                
                 const retryUserInfo = getCurrentUserForSocket();
                 if (retryUserInfo) {
                     socket.send(JSON.stringify({ type: "search", ...retryUserInfo }));
@@ -485,7 +563,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                 } else {
                     console.error("❌ Authentication lost during search retry");
                     isSearching = false;
-                    appendSystemMessage("🚨 Authentication lost - please refresh the page");
+                    
                 }
             }
         }, 5000);
@@ -494,7 +572,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     function stopSearch() {
         isSearching = false;
         clearTimeout(searchTimeout);
-        appendSystemMessage("🛑 Stopping search...");
+        
         
         // Include user ID in stop search message for server-side cleanup
         const userInfo = getCurrentUserForSocket();
@@ -531,7 +609,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     skipButton.addEventListener("click", () => {
-        appendSystemMessage("📞 Disconnecting from current user.");
+       
         
         // Include user ID in skip message
         const userInfo = getCurrentUserForSocket();
@@ -555,9 +633,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     // =========================
     shareScreenButton.addEventListener("click", async () => {
         if (!peerConnection) {
-            appendSystemMessage(
-                "🚨 Cannot share screen. No active connection.",
-            );
+            
             return;
         }
 
@@ -585,12 +661,10 @@ document.addEventListener("DOMContentLoaded", async () => {
             }
 
             localVideo.srcObject = screenStream;
-            appendSystemMessage("🖥️ Sharing your screen...");
+           
 
             screenTrack.onended = async () => {
-                appendSystemMessage(
-                    "📷 Screen share ended. Restoring camera...",
-                );
+                
                 try {
                     const camStream = await navigator.mediaDevices.getUserMedia({
                         video: true,
@@ -604,10 +678,10 @@ document.addEventListener("DOMContentLoaded", async () => {
                     }
 
                     localVideo.srcObject = camStream;
-                    appendSystemMessage("✅ Camera restored successfully");
+                    
                 } catch (err) {
                     console.error("❌ Failed to restore camera after screen share:", err);
-                    appendSystemMessage("⚠️ Could not restore camera. Continuing without video.");
+                   
                     localStream = null;
                     localVideo.srcObject = null;
                     // Remove video track from peer connection if it exists
@@ -618,7 +692,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             };
         } catch (err) {
             console.error("❌ Error sharing screen:", err);
-            appendSystemMessage("🚨 Failed to share screen.");
+            
         }
     });
 
@@ -735,8 +809,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     function sendMessage() {
         const text = input.value.trim();
-        appendSystemMessage("💬 Sending message:", text);
-        appendSystemMessage("💬 Data channel:", dataChannel);
+        
         if (text !== "" && dataChannel && dataChannel.readyState === "open") {
             const message = JSON.stringify({
                 type: "textMessage",

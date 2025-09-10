@@ -1,0 +1,292 @@
+            <!doctype html>
+            <html lang="en">
+              <head>
+                <meta charset="UTF-8" />
+                <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+                <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+                <title>My Website</title>
+                <link rel="stylesheet" href="settings.css" />
+                <link rel="icon" href="./favicon.ico" type="image/x-icon" />
+              </head>
+              <body>
+                <nav class="navbar">
+                  <img src="logo.png" width="70px" height="70px" />
+                  <h1 id="navbar-username">SoundLink</h1>
+                  <ul>
+                    <li><a a class="tabs" href="index.html">Meet</a></li>
+                    <li><a class="tabs" href="#">Social</a></li>
+                    <li class="indicator">Settings</li>
+                    <li><a class="logout" href="login.html">Logout</a></li>
+                  </ul>
+                </nav>
+                <main>
+                  <div class="settings-container">
+                    <ul>
+                      <li>
+                        <button type="button" data-target-id="account-content">
+                          Account
+                        </button>
+                      </li>
+                      <li>
+                        <button type="button" data-target-id="profile-content">
+                          Profile
+                        </button>
+                      </li>
+                      <li>
+                        <button type="button" data-target-id="theme-content">Theme</button>
+                      </li>
+                      <li>
+                        <button type="button" data-target-id="video-content">Video</button>
+                      </li>
+                      <li>
+                        <button type="button" data-target-id="premium-content">
+                          Premium
+                        </button>
+                      </li>
+                      <li>
+                        <button type="button" data-target-id="blocked-content">
+                          Blocked
+                        </button>
+                      </li>
+                      <li>
+                        <button type="button" data-target-id="privacy-content">
+                          Privacy
+                        </button>
+                      </li>
+                      <li>
+                        <button type="button" data-target-id="updates-content">
+                          Updates
+                        </button>
+                      </li>
+                    </ul>
+                  </div>
+                  <div class="content-wrapper">
+                    <div id="account-content" class="settings-page active">
+                      <h2>Account Settings</h2>
+                      <p>
+                        Here you can manage your account information, such as your username
+                        and email.
+                      </p>
+                      <form id="account-form">
+                        <label for="username">Username:</label><br />
+                        <input type="text" id="username" name="username" /><br /><br />
+                        <label for="email">Email:</label><br />
+                        <input type="email" id="email" name="email" /><br /><br />
+                        <button type="submit">Save Changes</button>
+                      </form>
+                    </div>
+
+                    <div id="profile-content" class="settings-page">
+                      <form id="profile-form">
+                        <div class="profile-grid">
+                          <div class="profile-left">
+                            <div class="input-group">
+                              <input
+                                type="text"
+                                id="username-edit"
+                                placeholder="Username edit field"
+                              />
+                            </div>
+                            <div class="input-group">
+                              <select id="tag-dropdown">
+                                <option value="Artist">Artist</option>
+                                <option value="Engineer">Engineer</option>
+                                <option value="Producer">Producer</option>
+                              </select>
+                              <span class="dropdown-arrow"></span>
+                            </div>
+                            <textarea
+                              id="bio-edit"
+                              placeholder="Bio edit field"
+                              rows="4"
+                            ></textarea>
+
+                            <div class="profile-image-upload">
+                              <div class="image-placeholder">
+                                <img
+                                  src="pencil-icon.png"
+                                  alt="Edit Icon"
+                                  class="edit-icon"
+                                />
+                                
+                              </div>
+                              
+                              <div class="cover-image-placeholder">
+                                <img
+                                  src="pencil-icon.png"
+                                  alt="Edit Icon"
+                                  class="edit-icon"
+                                />
+                              </div>
+                              
+                            </div>
+
+                            <button class="upgrade-button" type="button">Upgrade</button>
+                            <button
+                              id="save-profile-button"
+                              type="submit"
+                              class="save-changes-button"
+                            >
+                              Save changes
+                            </button>
+                          </div>
+
+                          <div class="profile-middle">
+                            <h3>SOCIALS</h3>
+                            <div class="social-input-group">
+                              <img src="platforms/tiktok.png" alt="TikTok" />
+                              <input
+                                type="text"
+                                id="tiktok-edit"
+                                placeholder="tiktok edit field"
+                              />
+                            </div>
+                            <div class="social-input-group">
+                              <img src="platforms/spotify.png" alt="Spotify" />
+                              <input
+                                type="text"
+                                id="spotify-edit"
+                                placeholder="spotify edit field"
+                              />
+                            </div>
+                            <div class="social-input-group">
+                              <img src="platforms/youtube.png" alt="YouTube" />
+                              <input
+                                type="text"
+                                id="youtube-edit"
+                                placeholder="youtube edit field"
+                              />
+                            </div>
+                            <div class="social-input-group">
+                              <img src="platforms/instagram.png" alt="Instagram" />
+                              <input
+                                type="text"
+                                id="instagram-edit"
+                                placeholder="instagram edit field"
+                              />
+                            </div>
+                          </div>
+
+                    <div class="profile">
+                      <div class="top-profile">
+                        <div class="userpfp">
+                          <img id="pfp-image" src="pfp.png" width="65px" height="65px" />
+                        </div>
+                        <div class="user">
+                          <div class="un">
+                            <h1 id="username-display">Username</h1>
+                            <div class="badges">
+                              <img
+                                id="verify-badge"
+                                class="verified"
+                                src="verified.png"
+                                width="20px"
+                                height="20px"
+                              />
+                              <img
+                                id="premium-badge"
+                                class="premium"
+                                src="premium.png"
+                                width="20px"
+                                height="20px"
+                              />
+                            </div>
+
+                          </div>
+                          <h2 class="friends">12 friends 0 mutual</h2>
+                        </div>
+                      </div>
+
+                      <div class="banner-wrapper">
+                        <img
+                          id="banner-image"
+                          class="banner"
+                          src="defbanner.png"
+                          height="170px"
+                          width="400px"
+                        />
+                        <div class="tag">ARTIST</div>
+                      </div>
+
+                      <div class="platforms">
+                        <a id="spotify-link" href="#"
+                          ><img src="platforms/spotify.png" width="60px" height="60px"
+                        /></a>
+                        <a id="youtube-link" href="#"
+                          ><img src="platforms/youtube.png" width="60px" height="60px"
+                        /></a>
+                        <a id="tiktok-link" href="#"
+                          ><img src="platforms/tiktok.png" width="60px" height="60px"
+                        /></a>
+                        <a id="instagram-link" href="#"
+                          ><img src="platforms/instagram.png" width="60px" height="60px"
+                        /></a>
+                      </div>
+                      <div class="bio">
+                        <p id="profile-description">
+                          Hello my name is officialhobberz im an artist from<br />
+                          England who is looking to make some music!
+                        </p>
+                      </div>
+                      <div class="add-and-more">
+                        <div class="add"><h1>ADD FRIEND</h1></div>
+                        <div class="more"><h1>•••</h1></div>
+                      </div>
+                    </div>
+                        </div>
+                      
+                    <div id="theme-content" class="settings-page">
+                      <h2>Theme Settings</h2>
+                      <p>Change your website theme.</p>
+                      <button>Light Mode</button>
+                      <button>Dark Mode</button>
+                    </div>
+
+                    <div id="video-content" class="settings-page">
+                      <h2>Video Settings</h2>
+                      <p>Adjust video quality and preferences.</p>
+                      <label for="quality">Quality:</label>
+                      <select id="quality" name="quality">
+                        <option value="auto">Auto</option>
+                        <option value="1080p">1080p</option>
+                        <option value="720p">720p</option>
+                      </select>
+                    </div>
+
+                    <div id="premium-content" class="settings-page">
+                      <h2>Premium Settings</h2>
+                      <p>View your premium subscription status.</p>
+                      <p>You are not currently subscribed to Premium.</p>
+                      <button>Upgrade Now</button>
+                    </div>
+
+                    <div id="blocked-content" class="settings-page">
+                      <h2>Blocked Users</h2>
+                      <p>Manage your list of blocked users.</p>
+                      <ul>
+                        <li>User 1</li>
+                        <li>User 2</li>
+                      </ul>
+                    </div>
+
+                    <div id="privacy-content" class="settings-page">
+                      <h2>Privacy Settings</h2>
+                      <p>Control your privacy options.</p>
+                      <label><input type="checkbox" /> Make my profile private</label><br />
+                      <label><input type="checkbox" /> Allow friend requests</label>
+                    </div>
+
+                    <div id="updates-content" class="settings-page">
+                      <h2>Updates</h2>
+                      <p>Check for new features and updates.</p>
+                      <p>Your software is up to date.</p>
+                    </div>
+                  </div>
+                </main>
+                <script src="settings.js"></script>
+                <script src="database.js"></script>
+                <script src="auth-manager.js"></script>
+                
+                <script src="settings-db.js"></script>
+              </body>
+            </html>
