@@ -1,4 +1,3 @@
-/* General styling */
 * {
     font-family: Arial, Helvetica, sans-serif;
     color: white;
@@ -6,7 +5,6 @@
     user-select: none;
 }
 
-/* Navbar styling */
 .navbar {
     border-radius: 20px;
     margin-top: 15px;
@@ -63,7 +61,6 @@
     border-bottom: white solid 2px;
 }
 
-/* Main content layout */
 main {
     display: flex;
     justify-content: flex-start;
@@ -73,10 +70,6 @@ main {
     height: calc(100vh - 100px);
 }
 
-/* Settings container (left panel) */
-/* ... (existing CSS for navbar, main, etc.) ... */
-
-/* Settings container (left panel) */
 .settings-container {
     background-color: #333;
 
@@ -98,10 +91,9 @@ main {
     margin-bottom: 35px;
 }
 
-/* Updated Button Styling */
 .settings-container li button {
     background-color: transparent;
-    /* Use a transparent background for default state */
+
     color: #a9a9a9;
     border: none;
     font-family: Arial, sans-serif;
@@ -119,18 +111,17 @@ main {
 .settings-container li button:hover {
     color: #fff;
     background-color: #444;
-    /* Added hover background color */
+
 }
 
 .settings-container li button.active {
     color: #fff;
     background-color: #555;
-    /* Changed active background color to be more distinct */
+
     border: 1px solid white;
-    /* Added a border for a more pronounced effect */
+
 }
 
-/* Content container (right panel) */
 .content-wrapper {
     flex-grow: 1;
     background-color: transparent;
@@ -143,7 +134,6 @@ main {
     height: 565px;
 }
 
-/* Styles for the content pages */
 .settings-page {
     display: none;
 }
@@ -152,7 +142,6 @@ main {
     display: block;
 }
 
-/* Ensure the profile content takes up space and is a flex container */
 #profile-content {
     padding: 3px;
 }
@@ -160,13 +149,12 @@ main {
 .profile-grid {
     display: grid;
     grid-template-columns: 1fr 1fr 1fr;
-    /* Three columns */
+
     gap: 20px;
     height: 100%;
-    /* Ensure it fills the parent */
+
 }
 
-/* --- Left Column Styles --- */
 .profile-left {
     display: flex;
     flex-direction: column;
@@ -178,7 +166,7 @@ main {
     display: flex;
     align-items: center;
     background-color: #525252;
-    /* Darker background for input group */
+
     border-radius: 25px;
     padding-right: 10px;
     padding-top: 10px;
@@ -190,7 +178,7 @@ main {
     width: 100%;
     padding: 10px;
     background-color: #525252;
-    /* Keep input background transparent */
+
     border: none;
     color: white;
     outline: none;
@@ -199,7 +187,7 @@ main {
 
 .profile-left .input-group .check-icon {
     color: #4CAF50;
-    /* Green checkmark */
+
     font-size: 1.2em;
     background-color: transparent;
 }
@@ -213,7 +201,7 @@ main {
     padding: 10px;
 
     background-color: #525252;
-    /* Darker background */
+
     border: none;
     border-radius: 25px;
     color: white;
@@ -231,7 +219,7 @@ main {
 .profile-image-upload .image-placeholder,
 .profile-image-upload .cover-image-placeholder {
     background-color: #4a4a4a;
-    /* Placeholder background */
+
     border-radius: 25px;
     display: flex;
     justify-content: center;
@@ -244,12 +232,12 @@ main {
     width: 80px;
     height: 80px;
     border-radius: 50%;
-    /* Circular for avatar */
+
 }
 
 .profile-image-upload .cover-image-placeholder {
     flex-grow: 1;
-    /* Takes remaining space */
+
     height: 170px;
 }
 
@@ -261,36 +249,34 @@ main {
 
 .upgrade-button {
     background-color: #FFC107;
-    /* Yellow */
+
     color: #303030;
-    /* Dark text */
+
     padding: 10px 20px;
     border: none;
     border-radius: 25px;
     cursor: pointer;
     font-weight: bold;
     margin-top: auto;
-    width: 205%;
-    /* Push to bottom */
+    width: 195%;
+
 }
 
 .save-changes-button {
     background-color: #4CAF50;
-    /* Green */
+
     color: white;
     padding: 10px 20px;
     border: none;
     border-radius: 25px;
     cursor: pointer;
     font-weight: bold;
-    width: 205%;
+    width: 195%;
 }
 
-
-/* --- Middle Column Styles (Socials) --- */
 .profile-middle {
-    background-color: #2a2a2a;
-    /* Darker background */
+    background-color: transparent;
+    border: 5px solid #545454;
     border-radius: 25px;
     padding: 20px;
     display: flex;
@@ -316,21 +302,20 @@ main {
     width: 24px;
     height: 24px;
     background-color: transparent;
-    /* Social icons are usually colorful */
+
 }
 
 .social-input-group input {
     flex-grow: 1;
     padding: 8px;
     background-color: #3a3a3a;
-    /* Slightly lighter input background */
+
     border: none;
     border-radius: 5px;
     color: white;
     outline: none;
 }
 
-/* --- Right Column Styles (Preview) --- */
 .profile-right {
     display: flex;
     flex-direction: column;
@@ -339,13 +324,13 @@ main {
 
 .profile-card {
     background-color: #2a2a2a;
-    /* Darker background */
+
     border-radius: 10px;
 
     text-align: center;
     position: relative;
     overflow: hidden;
-    /* To contain cover image */
+
 }
 
 .profile-card .card-avatar {
@@ -354,12 +339,12 @@ main {
     border-radius: 50%;
     border: 2px solid white;
     background-color: #555;
-    /* Placeholder color */
+
     margin: 0 auto 10px auto;
     display: block;
     position: relative;
     z-index: 2;
-    /* Above cover image */
+
 }
 
 .profile-card .card-username {
@@ -380,16 +365,16 @@ main {
 
 .profile-card .card-cover-image {
     background-color: #4a4a4a;
-    /* Placeholder for cover image */
+
     height: 80px;
     width: 100%;
     border-radius: 5px;
     position: absolute;
     top: 0;
-    /* Position at the top */
+
     left: 0;
     z-index: 1;
-    /* Behind avatar */
+
 }
 
 .gallery-preview {
@@ -402,42 +387,40 @@ main {
     width: 60px;
     height: 60px;
     background-color: #4a4a4a;
-    /* Placeholder for image thumbnails */
+
     border-radius: 5px;
     flex-shrink: 0;
-    /* Prevent shrinking */
+
 }
 
 .bio-preview-box {
     background-color: #2a2a2a;
-    /* Darker background */
+
     border-radius: 10px;
     padding: 15px;
     color: #a9a9a9;
     font-size: 0.9em;
     flex-grow: 1;
-    /* Takes up remaining space */
+
 }
 
-/* Adjust general input and button styles if needed */
 input[type="text"],
 input[type="email"],
 select,
 textarea {
-    /* Override general * selector if it's too broad for these elements */
+
     background-color: #2a2a2a;
-    /* Default input background for consistency */
+
     color: white;
     border: 1px solid #555;
-    /* Slight border */
+
 }
 
 button {
-    /* Override general * selector for buttons if needed */
-    color: #303030;
-    /* Ensure text color is dark for yellow button */
-}
 
+    color: #303030;
+
+}
 
 .profile {
 
@@ -546,14 +529,14 @@ button {
     max-height: 6em;
     overflow: hidden
 }
-
 .bio p {
     margin: 0;
     line-height: 1.5em;
-    display: -webkit-box;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-    text-overflow: ellipsis
+
+    display: block;            
+    overflow-wrap: break-word; 
+    word-break: break-word;    
+    white-space: pre-wrap;     
 }
 
 .add-and-more {
@@ -578,4 +561,22 @@ button {
 
 body {
     overflow-x: hidden
+}
+
+.edit-icon{
+    position: absolute;
+    left: 30px;
+    bottom: 22px;
+}
+
+.profile-preview{
+    border-radius: 50%;
+    width: 70px;
+    height: 70px;
+}
+
+.banner-preview{
+    border-radius: 25px;
+    width: 250;
+    height: 150px;
 }

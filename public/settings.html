@@ -4,9 +4,12 @@
                 <meta charset="UTF-8" />
                 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
                 <meta http-equiv="X-UA-Compatible" content="ie=edge" />
-                <title>My Website</title>
+                <title>Soundlink - Settings</title>
                 <link rel="stylesheet" href="settings.css" />
                 <link rel="icon" href="./favicon.ico" type="image/x-icon" />
+                <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" />
+                <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+
               </head>
               <body>
                 <nav class="navbar">
@@ -98,28 +101,29 @@
                             <textarea
                               id="bio-edit"
                               placeholder="Bio edit field"
-                              rows="4"
+                              rows="3"
                             ></textarea>
 
                             <div class="profile-image-upload">
                               <div class="image-placeholder">
-                                <img
-                                  src="pencil-icon.png"
-                                  alt="Edit Icon"
-                                  class="edit-icon"
-                                />
-                                
+                                <img  id="pfp-preview" src="pfp.png" alt="Profile Picture" class="profile-preview" />
+                                <label for="pfp-upload">
+                                  <img src="edit.png" alt="Edit Icon" class="edit-icon" />
+                                </label>
+                                <input type="file" id="pfp-upload" accept="image/*" style="display:none" />
                               </div>
-                              
+
                               <div class="cover-image-placeholder">
-                                <img
-                                  src="pencil-icon.png"
-                                  alt="Edit Icon"
-                                  class="edit-icon"
-                                />
+                                <img  id="banner-preview" src="defbanner.png" alt="Banner Image" class="banner-preview" />
+                                <label for="banner-upload">
+                                  <img src="edit.png" alt="Edit Icon" class="edit-icon" />
+                                </label>
+                                <input type="file" id="banner-upload" accept="image/*" style="display:none" />
                               </div>
-                              
                             </div>
+
+                              
+                            
 
                             <button class="upgrade-button" type="button">Upgrade</button>
                             <button
@@ -282,11 +286,23 @@
                       <p>Your software is up to date.</p>
                     </div>
                   </div>
+
+                    <div id="crop-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); justify-content:center; align-items:center; z-index:1000;">
+                      <div style="position:relative; background:#fff; padding:10px;">
+                        <img id="crop-image" src="" style="max-width:500px; max-height:400px;" />
+                        <div style="text-align:right; margin-top:5px;">
+                          <button id="crop-confirm">Crop & Save</button>
+                          <button id="crop-cancel">Cancel</button>
+                        </div>
+                      </div>
+                    </div>
                 </main>
+                <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
                 <script src="settings.js"></script>
                 <script src="database.js"></script>
                 <script src="auth-manager.js"></script>
-                
                 <script src="settings-db.js"></script>
+
+                
               </body>
             </html>

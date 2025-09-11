@@ -1,167 +1,172 @@
-// settings-db.js
-
-// Make sure AuthManager exists
-if (!window.authManager) {
-  console.error(
-    "🚨 AuthManager not found. Load auth-manager.js before this file.",
-  );
-}
-
-/**
- * Helper: Get currently logged-in user via AuthManager
- */
-function getCurrentUser() {
-  return authManager.getCurrentUser();
-}
-
-/**
- * Load user profile and populate the form + preview
- */
-async function loadUserProfile() {
-  const user = getCurrentUser();
-  if (!user) {
-    console.warn("⚠️ No authenticated user found, redirecting...");
-    window.location.href = "login.html";
-    return;
-  }
-
-  const profile = authManager.getCurrentUserProfile();
-  if (!profile) {
-    console.warn("⚠️ User profile not found, using fallback values.");
-  }
-
-  // Populate form fields
-  document.getElementById("username-edit").value = profile?.username || "";
-  document.getElementById("bio-edit").value = profile?.description || "";
-  document.getElementById("tag-dropdown").value = profile?.tag || "Artist";
-
-  document.getElementById("tiktok-edit").value = profile?.tiktok || "";
-  document.getElementById("spotify-edit").value = profile?.spotify || "";
-  document.getElementById("youtube-edit").value = profile?.youtube || "";
-  document.getElementById("instagram-edit").value = profile?.instagram || "";
-
-  updateProfileCard(profile || {});
-}
-
-/**
- * Upload an image to Supabase Storage
- * @param {File} file
- * @param {string} path
- * @returns {string|null} public URL of uploaded file
- */
-async function uploadImage(file, path) {
-  if (!file) return null;
-
-  const { error } = await supabase.storage
-    .from("profiles")
-    .upload(path, file, { upsert: true });
-
-  if (error) {
-    console.error("❌ Upload failed:", error.message);
-    return null;
-  }
-
-  const { data: publicUrlData } = supabase.storage
-    .from("profiles")
-    .getPublicUrl(path);
-
-  return publicUrlData.publicUrl;
-}
-
-/**
- * Save user profile updates
- */
-async function saveUserProfile(e) {
-  e.preventDefault();
-
-  const user = getCurrentUser();
-  if (!user) {
-    window.location.href = "login.html";
-    return;
-  }
-
-  const username = document.getElementById("username-edit").value;
-  const description = document.getElementById("bio-edit").value;
-  const tag = document.getElementById("tag-dropdown").value;
-
-  const tiktok = document.getElementById("tiktok-edit").value;
-  const spotify = document.getElementById("spotify-edit").value;
-  const youtube = document.getElementById("youtube-edit").value;
-  const instagram = document.getElementById("instagram-edit").value;
-
-  const pfpFile = document.getElementById("pfp-upload")?.files[0];
-  const bannerFile = document.getElementById("banner-upload")?.files[0];
-
-  let pfpUrl = null;
-  let bannerUrl = null;
-
-  if (pfpFile) pfpUrl = await uploadImage(pfpFile, `pfp/${user.id}`);
-  if (bannerFile)
-    bannerUrl = await uploadImage(bannerFile, `banner/${user.id}`);
-
-  const updates = {
-    username,
-    description,
-    tag,
-    tiktok,
-    spotify,
-    youtube,
-    instagram,
-    updated_at: new Date().toISOString(),
-  };
-  if (pfpUrl) updates.profile_picture = pfpUrl;
-  if (bannerUrl) updates.banner = bannerUrl;
-
-  const success = await authManager.updateProfile(updates);
-  if (success) {
-    updateProfileCard(authManager.getCurrentUserProfile());
-    alert("✅ Profile saved!");
-  } else {
-    alert("❌ Failed to update profile!");
-  }
-}
-
-/**
- * Update the profile card UI
- */
-function updateProfileCard(profile) {
-  document.getElementById("username-display").textContent =
-    profile.username || "Username";
-  document.getElementById("profile-description").textContent =
-    profile.description || "";
-  document.querySelector(".tag").textContent = profile.tag || "Artist";
-
-  document.getElementById("spotify-link").href = profile.spotify || "#";
-  document.getElementById("youtube-link").href = profile.youtube || "#";
-  document.getElementById("tiktok-link").href = profile.tiktok || "#";
-  document.getElementById("instagram-link").href = profile.instagram || "#";
-
-  if (profile.profile_picture) {
-    document.getElementById("pfp-image").src = profile.profile_picture;
-  }
-  if (profile.banner) {
-    document.getElementById("banner-image").src = profile.banner;
-  }
-}
-
-/**
- * Initialize settings page
- */
 document.addEventListener("DOMContentLoaded", async () => {
-  // Wait until AuthManager has fully loaded auth state
-  await authManager.waitForAuth();
-
-  if (!authManager.isAuthenticated()) {
+  const { data: { session } } = await supabaseClient.auth.getSession();
+  if (!session) {
+    alert("No session found! Redirecting...");
     window.location.href = "login.html";
     return;
   }
 
-  // Load profile into form and preview
-  await loadUserProfile();
+  const user = session.user;
 
-  // Attach save handler
-  const profileForm = document.getElementById("profile-form");
-  if (profileForm) {
-    profileForm.addEventListener("submit", saveUserProfile);
+  let newPfpFile = null;
+  let newBannerFile = null;
+
+  async function loadProfile() {
+    const { data: profile, error } = await supabaseClient
+      .from("profiles")
+      .select("*")
+      .eq("id", user.id)
+      .single();
+
+    if (error) {
+      console.error("Profile fetch error:", error.message);
+      return;
+    }
+
+    const tagDropdown = document.getElementById("tag-dropdown");
+    tagDropdown.innerHTML = ""; 
+
+    const tags = ["Artist", "Producer", "Engineer", "Manager", "Composer", "Recruiter"];
+    tags.forEach(tag => {
+      const option = document.createElement("option");
+      option.value = tag;
+      option.textContent = tag;
+      if (profile.tag && profile.tag.toLowerCase() === tag.toLowerCase()) option.selected = true;
+      tagDropdown.appendChild(option);
+    });
+
+    document.getElementById("navbar-username").textContent = `SoundLink - ${profile.username || "Unknown User"}`;
+    document.getElementById("username-display").textContent = profile.username || "Unknown User";
+    document.getElementById("pfp-image").src = profile.profile_picture || "pfp.png";
+    document.getElementById("banner-image").src = profile.banner || "defbanner.png";
+    document.querySelector(".tag").textContent = profile.tag || "ARTIST";
+    document.getElementById("verify-badge").style.display = profile.is_verified ? "inline" : "none";
+    document.getElementById("premium-badge").style.display = profile.is_premium ? "inline" : "none";
+    document.getElementById("profile-description").innerHTML = profile.description || "No bio yet.";
+
+    if (profile.spotify) document.getElementById("spotify-link").href = profile.spotify;
+    if (profile.youtube) document.getElementById("youtube-link").href = profile.youtube;
+    if (profile.tiktok) document.getElementById("tiktok-link").href = profile.tiktok;
+    if (profile.instagram) document.getElementById("instagram-link").href = profile.instagram;
+
+    document.getElementById("username-edit").value = profile.username || "";
+    document.getElementById("bio-edit").value = profile.description || "";
+    document.getElementById("tiktok-edit").value = profile.tiktok || "";
+    document.getElementById("spotify-edit").value = profile.spotify || "";
+    document.getElementById("youtube-edit").value = profile.youtube || "";
+    document.getElementById("instagram-edit").value = profile.instagram || "";
+
+    document.getElementById("pfp-preview").src = profile.profile_picture || "pfp.png";
+    document.getElementById("banner-preview").src = profile.banner || "defbanner.png";
   }
+
+  await loadProfile();
+
+  document.getElementById("pfp-upload").addEventListener("change", (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const img = new Image();
+      img.onload = () => {
+        if (img.width !== img.height) {
+          alert("Profile picture must be square!");
+          e.target.value = "";
+          return;
+        }
+        newPfpFile = file;
+        document.getElementById("pfp-preview").src = URL.createObjectURL(file);
+      };
+      img.src = URL.createObjectURL(file);
+    }
+  });
+
+  document.getElementById("banner-upload").addEventListener("change", (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const img = new Image();
+      img.onload = () => {
+        const requiredRatio = 400 / 170;
+        const actualRatio = img.width / img.height;
+        if (Math.abs(actualRatio - requiredRatio) > 0.05) {
+          alert("Banner must match the required aspect ratio (400x170).");
+          e.target.value = "";
+          return;
+        }
+        newBannerFile = file;
+        document.getElementById("banner-preview").src = URL.createObjectURL(file);
+      };
+      img.src = URL.createObjectURL(file);
+    }
+  });
+
+  document.getElementById("profile-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const updates = {
+      username: document.getElementById("username-edit").value,
+      tag: document.getElementById("tag-dropdown").value,
+      description: document.getElementById("bio-edit").value,
+      tiktok: document.getElementById("tiktok-edit").value,
+      spotify: document.getElementById("spotify-edit").value,
+      youtube: document.getElementById("youtube-edit").value,
+      instagram: document.getElementById("instagram-edit").value
+    };
+
+    if (newPfpFile) {
+      try {
+        const { error: uploadError } = await supabaseClient.storage
+          .from("userpfp")
+          .upload(`${user.id}/${user.id}.png`, newPfpFile, { upsert: true });
+
+        if (uploadError) throw uploadError;
+
+        const { data: publicUrl } = supabaseClient.storage
+          .from("userpfp")
+          .getPublicUrl(`${user.id}/${user.id}.png`);
+
+        updates.profile_picture = publicUrl.publicUrl;
+      } catch (err) {
+        alert("Error uploading profile picture: " + err.message);
+        return;
+      }
+    }
+
+    if (newBannerFile) {
+      try {
+        const { error: uploadError } = await supabaseClient.storage
+          .from("userbanner")
+          .upload(`${user.id}/${user.id}.png`, newBannerFile, { upsert: true });
+
+        if (uploadError) throw uploadError;
+
+        const { data: publicUrl } = supabaseClient.storage
+          .from("userbanner")
+          .getPublicUrl(`${user.id}/${user.id}.png`);
+
+        updates.banner = publicUrl.publicUrl;
+      } catch (err) {
+        alert("Error uploading banner: " + err.message);
+        return;
+      }
+    }
+
+    const { error } = await supabaseClient
+      .from("profiles")
+      .update(updates)
+      .eq("id", user.id);
+
+    if (error) {
+      if (error.message.includes("duplicate key value")) {
+        alert("Username already exists. Please choose another.");
+      } else {
+        alert("Error saving profile: " + error.message);
+      }
+      return;
+    }
+
+    newPfpFile = null;
+    newBannerFile = null;
+
+    await loadProfile();
+    alert("Profile updated!");
+  });
 });

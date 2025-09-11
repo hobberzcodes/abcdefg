@@ -1,28 +1,25 @@
+
 document.addEventListener("DOMContentLoaded", async () => {
-    // Wait for authentication before initializing the app
+
     console.log("🔐 Waiting for authentication...");
     await authManager.waitForAuth();
-    
+
     if (!authManager.isAuthenticated()) {
         console.log("❌ User not authenticated, redirecting...");
-        return; // Auth manager will handle redirect
+        return; 
     }
-    
+
     console.log("✅ User authenticated, initializing app...");
 
-    
-    
     const input = document.querySelector(".chat-input input");
     const sendBtn = document.querySelector(".send-btn");
     const chatBox = document.querySelector(".chat-box");
     const skipButton = document.getElementById("skipButton");
     const shareScreenButton = document.getElementById("shareScreenButton");
-    
 
     const localVideo = document.getElementById("localVideo");
     const remoteVideo = document.getElementById("remoteVideo");
 
-    // Get the profile card elements by their new IDs
     const usernameDisplay = document.getElementById("username-display");
     const pfpImage = document.getElementById("pfp-image");
     const bannerImage = document.getElementById("banner-image");
@@ -30,8 +27,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     const premiumBadge = document.getElementById("premium-badge");
     const audioUploadInput = document.getElementById("audioUpload");
     const imageUploadInput = document.getElementById("imageUpload");
-    
-    // Initialize the current user's profile display
+
+
+        
     initializeCurrentUserProfile();
 
     let localStream;
@@ -41,30 +39,25 @@ document.addEventListener("DOMContentLoaded", async () => {
     let searchTimeout;
     let mediaInitialized = false;
 
-    // Store the remote user's profile info
     let remoteUserProfile = {};
-    
-    // Initialize current user's profile display
+
     function initializeCurrentUserProfile() {
         const currentUserProfile = authManager.getCurrentUserProfile();
-        
+
         if (!currentUserProfile) {
             console.warn("⚠️ No current user profile available");
             return;
         }
-        
+
         console.log("👤 Setting up current user profile display:", currentUserProfile);
-        
-        // Update navbar to show current user
+
         const currentUsernameElement = document.querySelector('.navbar h1');
         if (currentUsernameElement) {
             currentUsernameElement.textContent = `SoundLink - ${currentUserProfile.username}`;
         }
-        
-        // Show current user's profile in the profile panel (until connected to a peer)
+
         displayUserProfile(currentUserProfile, true);
-        
-        // Set up logout functionality
+
         const logoutLink = document.querySelector('a[href="login.html"]');
         if (logoutLink) {
             logoutLink.addEventListener('click', async (e) => {
@@ -73,21 +66,17 @@ document.addEventListener("DOMContentLoaded", async () => {
                 await authManager.signOut();
             });
         }
-        
+
         console.log("✅ Current user profile initialized");
     }
-    
-    // Display user profile in the profile panel
-    // Display user profile in the profile panel
+
     function displayUserProfile(profile, isCurrentUser = false) {
         console.log("👤 Displaying profile:", profile, "Current user:", isCurrentUser);
 
-        // Update username display
         if (usernameDisplay && profile.username) {
             usernameDisplay.textContent = profile.username;
         }
 
-        // Update profile picture
         if (pfpImage && profile.profile_picture) {
             pfpImage.src = profile.profile_picture;
             pfpImage.onerror = () => {
@@ -96,7 +85,6 @@ document.addEventListener("DOMContentLoaded", async () => {
             };
         }
 
-        // Update banner image
         if (bannerImage && profile.banner) {
             bannerImage.src = profile.banner;
             bannerImage.onerror = () => {
@@ -105,39 +93,33 @@ document.addEventListener("DOMContentLoaded", async () => {
             };
         }
 
-        // Update verification badge
-        
         if (verifyBadge) {
             if (profile.verified) {
-                verifyBadge.style.display = "inline-block"; // or "block" depending on layout
+                verifyBadge.style.display = "inline-block"; 
             } else {
                 verifyBadge.style.display = "none";
             }
         }
-        // Update premium badge
-        
+
         if (premiumBadge) {
             if (profile.premium) {
-                premiumBadge.style.display = "inline-block"; // show if premium
+                premiumBadge.style.display = "inline-block"; 
             } else {
-                premiumBadge.style.display = "none"; // hide if not
+                premiumBadge.style.display = "none"; 
             }
         }
 
-        // Update tag if available
         const tagElement = document.querySelector('.tag');
         if (tagElement && profile.tag) {
             tagElement.textContent = profile.tag.toUpperCase();
         }
 
-        // Update description/bio
         const bioElement = document.getElementById("profile-description");
         if (bioElement) {
             bioElement.textContent = profile.description || "";
             bioElement.style.display = profile.description ? "block" : "none";
         }
 
-        // Update social links
         const socials = {
             spotify: "spotify-link",
             youtube: "youtube-link",
@@ -158,7 +140,6 @@ document.addEventListener("DOMContentLoaded", async () => {
             }
         });
 
-        // Add visual indicator for current user vs peer
         const profileContainer = document.querySelector('.profile');
         if (profileContainer) {
             profileContainer.classList.toggle('current-user', isCurrentUser);
@@ -170,7 +151,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     const configuration = {
         iceServers: [
-            { urls: "stun:stun.l.google.com:19302" }, // Google STUN
+            { urls: "stun:stun.l.google.com:19302" }, 
             {
                 urls: "turn:openrelay.metered.ca:80",
                 username: "openrelayproject",
@@ -190,8 +171,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     };
 
     let socket;
-    
-    // Helper function to get current user info for socket messages
+
     function getCurrentUserForSocket() {
         const currentUser = authManager.getCurrentUser();
         const currentUserProfile = authManager.getCurrentUserProfile();
@@ -217,12 +197,11 @@ document.addEventListener("DOMContentLoaded", async () => {
         };
     }
 
-
     function initializeSocket() {
-        // Verify authentication before initializing socket
+
         if (!authManager.isAuthenticated()) {
             console.error("❌ Cannot initialize socket - user not authenticated");
-            
+
             return;
         }
 
@@ -235,23 +214,21 @@ document.addEventListener("DOMContentLoaded", async () => {
         socket.onopen = () => {
             const currentUser = authManager.getCurrentUser();
             console.log("🔌 Connected to signaling server as user:", currentUser?.id);
-            
+
             startSearch();
         };
 
         socket.onclose = () => {
             console.log("🔌 Disconnected from signaling server");
-            
+
         };
 
         socket.onerror = (err) => {
             console.error("⚠️ WebSocket error:", err);
-            
-            
-            // Check if the error might be due to authentication issues
+
             if (!authManager.isAuthenticated()) {
                 console.error("❌ Socket error may be due to authentication failure");
-                
+
             }
         };
 
@@ -259,11 +236,10 @@ document.addEventListener("DOMContentLoaded", async () => {
             try {
                 const data = JSON.parse(event.data);
                 console.log("📩 Signaling message:", data);
-                
-                // Verify we're still authenticated before processing messages
+
                 if (!authManager.isAuthenticated()) {
                     console.error("❌ Received socket message but user is not authenticated");
-                    
+
                     return;
                 }
 
@@ -276,19 +252,18 @@ document.addEventListener("DOMContentLoaded", async () => {
                     isCaller: data.isCaller
                 });
 
-                // Handle peer profile data - either from direct profile data or by UUID lookup
                 if (data.peerProfile) {
-                    // Server provided complete profile data
+
                     console.log("✅ Received peer profile data directly from server");
                     remoteUserProfile = data.peerProfile;
                     displayUserProfile(remoteUserProfile, false);
                 } else if (data.peerId) {
-                    // Fallback: lookup peer profile by UUID
+
                     console.log("🔍 Looking up peer profile by UUID:", data.peerId);
                     await loadPeerProfileByUUID(data.peerId);
                 } else {
                     console.warn("⚠️ No peer profile data or UUID provided");
-                    // Create fallback profile
+
                     remoteUserProfile = {
                         username: "Unknown Peer",
                         profile_picture: "pfp.png",
@@ -299,10 +274,10 @@ document.addEventListener("DOMContentLoaded", async () => {
                 }
 
                 if (data.isCaller) {
-                    
+
                     createOffer();
                 } else {
-                    
+
                 }
             } else if (data.type === "offer") {
                 console.log("📡 Received offer");
@@ -340,28 +315,24 @@ document.addEventListener("DOMContentLoaded", async () => {
                 console.log(
                     "👉 Other user skipped. Automatically searching for next peer...",
                 );
-                
-                
+
                 resetConnection();
                 chatBox.innerHTML = "";
                 startSearch();
             }
         } catch (error) {
             console.error("❌ Error processing socket message:", error);
-            
+
         }
         };
     }
 
-    // Function to fetch peer profile from database using UUID
-    // Function to fetch peer profile from database using UUID
     async function loadPeerProfileByUUID(userUUID) {
         if (!supabaseClient) {
             console.error("🚨 Supabase client not initialized.");
             return;
         }
 
-        // Validate the UUID format before querying Supabase
         const isUUID =
             /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userUUID);
         if (!isUUID) {
@@ -438,13 +409,11 @@ document.addEventListener("DOMContentLoaded", async () => {
         remoteUserProfile = profile;
         console.log("✅ Loaded remote user profile:", remoteUserProfile);
 
-        // Show peer's profile in UI
         displayUserProfile(remoteUserProfile, false);
     }
 
-
     async function initMedia() {
-        // Return early if media initialization has already been attempted
+
         if (mediaInitialized) {
             console.log("🎤 Media initialization already completed");
             return;
@@ -459,21 +428,19 @@ document.addEventListener("DOMContentLoaded", async () => {
             });
             console.log("🎤 Local stream successfully initialized", localStream);
             localVideo.srcObject = localStream;
-            
-            // Wait for video metadata to load to ensure stream is fully ready
+
             await new Promise(
                 (resolve) => (localVideo.onloadedmetadata = resolve),
             );
             console.log("✅ Camera and microphone ready for peer connections");
-            
+
         } catch (err) {
             console.error("❌ Error accessing camera/mic:", err);
-            
+
             console.warn("⚠️ Proceeding without media access - text chat only");
-            localStream = null; // Explicitly set to null for clarity
+            localStream = null; 
         }
 
-        // Mark initialization as complete (whether successful or not) and start socket
         mediaInitialized = true;
         console.log("🔌 Media initialization complete, starting socket connection...");
         initializeSocket();
@@ -483,8 +450,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     function setupPeerConnection() {
         console.log("🔗 Setting up peer connection. Local stream:", localStream);
-        
-        // Only add local tracks if localStream exists and has tracks
+
         if (localStream && localStream.getTracks().length > 0) {
             localStream
                 .getTracks()
@@ -493,7 +459,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         } else {
             console.warn("⚠️ No local stream available - proceeding with text/data only");
         }
-        
+
         peerConnection.ontrack = (event) => {
             console.log("🎥 Remote stream received");
             remoteVideo.srcObject = event.streams[0];
@@ -536,26 +502,24 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     function startSearch() {
         isSearching = true;
-        
-        
-        // Get current user info for socket message
+
         const userInfo = getCurrentUserForSocket();
         if (!userInfo) {
-            
+
             return;
         }
-        
+
         const searchMessage = {
             type: "search",
             ...userInfo
         };
-        
+
         console.log("🔍 Sending search message with user ID:", userInfo.userId);
         socket.send(JSON.stringify(searchMessage));
 
         searchTimeout = setTimeout(() => {
             if (isSearching) {
-                
+
                 const retryUserInfo = getCurrentUserForSocket();
                 if (retryUserInfo) {
                     socket.send(JSON.stringify({ type: "search", ...retryUserInfo }));
@@ -563,7 +527,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                 } else {
                     console.error("❌ Authentication lost during search retry");
                     isSearching = false;
-                    
+
                 }
             }
         }, 5000);
@@ -572,15 +536,13 @@ document.addEventListener("DOMContentLoaded", async () => {
     function stopSearch() {
         isSearching = false;
         clearTimeout(searchTimeout);
-        
-        
-        // Include user ID in stop search message for server-side cleanup
+
         const userInfo = getCurrentUserForSocket();
         const stopMessage = {
             type: "stopSearch",
             userId: userInfo?.userId || null
         };
-        
+
         socket.send(JSON.stringify(stopMessage));
     }
 
@@ -593,15 +555,13 @@ document.addEventListener("DOMContentLoaded", async () => {
         dataChannel = null;
         chatBox.innerHTML = "";
 
-        // Reset remote user profile
         remoteUserProfile = {};
-        
-        // Restore current user's profile display
+
         const currentUserProfile = authManager.getCurrentUserProfile();
         if (currentUserProfile) {
             displayUserProfile(currentUserProfile, true);
         } else {
-            // Fallback display
+
             usernameDisplay.textContent = "Username";
             pfpImage.src = "pfp.png";
             bannerImage.src = "defbanner.png";
@@ -609,15 +569,13 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     skipButton.addEventListener("click", () => {
-       
-        
-        // Include user ID in skip message
+
         const userInfo = getCurrentUserForSocket();
         const skipMessage = {
             type: "skipToNext",
             userId: userInfo?.userId || null
         };
-        
+
         socket.send(JSON.stringify(skipMessage));
         resetConnection();
         startSearch();
@@ -628,12 +586,9 @@ document.addEventListener("DOMContentLoaded", async () => {
         resetConnection();
     });
 
-    // =========================
-    // Share Screen Feature
-    // =========================
     shareScreenButton.addEventListener("click", async () => {
         if (!peerConnection) {
-            
+
             return;
         }
 
@@ -661,10 +616,9 @@ document.addEventListener("DOMContentLoaded", async () => {
             }
 
             localVideo.srcObject = screenStream;
-           
 
             screenTrack.onended = async () => {
-                
+
                 try {
                     const camStream = await navigator.mediaDevices.getUserMedia({
                         video: true,
@@ -678,13 +632,13 @@ document.addEventListener("DOMContentLoaded", async () => {
                     }
 
                     localVideo.srcObject = camStream;
-                    
+
                 } catch (err) {
                     console.error("❌ Failed to restore camera after screen share:", err);
-                   
+
                     localStream = null;
                     localVideo.srcObject = null;
-                    // Remove video track from peer connection if it exists
+
                     if (videoSender) {
                         videoSender.replaceTrack(null);
                     }
@@ -692,13 +646,10 @@ document.addEventListener("DOMContentLoaded", async () => {
             };
         } catch (err) {
             console.error("❌ Error sharing screen:", err);
-            
+
         }
     });
 
-    // =========================
-    // Chat + file transfer
-    // =========================
     function getSenderName() {
         return remoteUserProfile.username || "Friend";
     }
@@ -809,7 +760,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     function sendMessage() {
         const text = input.value.trim();
-        
+
         if (text !== "" && dataChannel && dataChannel.readyState === "open") {
             const message = JSON.stringify({
                 type: "textMessage",
